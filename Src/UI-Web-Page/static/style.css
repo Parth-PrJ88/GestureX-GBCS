@@ -1,0 +1,76 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f6f6f6;
+}
+
+/* Navbar */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    background: black;
+    padding: 18px;
+    color: white;
+}
+
+.navbar a {
+    margin-left: 25px;
+    text-decoration: none;
+    font-size: 18px;
+    color: white;
+}
+
+/* Hero Section */
+.hero {
+    text-align: center;
+    padding-top: 40px;
+}
+.hero img {
+    width: 130px;
+}
+.hero h1 {
+    font-size: 28px;
+}
+
+/* Cards Grid */
+.cards {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 30px;
+    flex-wrap: wrap;
+}
+
+.card {
+    width: 250px;
+    padding: 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 0 6px rgba(0,0,0,0.15);
+    text-align: center;
+}
+
+.card button {
+    padding: 7px 15px;
+    background: black;
+    color: white;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+/* Center headings */
+.center {
+    text-align: center;
+    margin-top: 20px;
+}
+
+/* Footer */
+footer {
+    margin-top: 30px;
+    text-align: center;
+    padding: 10px;
+    background: black;
+    color: white;
+}

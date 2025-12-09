@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Try GBCS</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="navbar">
+    <div class="left">GBCS</div>
+    <div class="right">
+        <a href="/">Home</a>
+        <a href="/try">Try Now</a>
+        <a href="/about">About</a>
+    </div>
+</div>
+
+<h2 class="center">Start System Testing</h2>
+<div class="cards">
+    <div class="card">
+        <h3>Alignment</h3>
+        <button onclick="launch('/alignment')">Run</button>
+    </div>
+
+    <div class="card">
+        <h3>Calibration</h3>
+        <button onclick="launch('/calibration')">Run</button>
+    </div>
+
+    <div class="card">
+        <h3>Cursor Control</h3>
+        <button onclick="launch('/cursor')">Run</button>
+    </div>
+
+    <div class="card stop">
+        <h3>Stop Process</h3>
+        <button onclick="launch('/stop')">Stop</button>
+    </div>
+</div>
+
+<p id="status" style="text-align:center;font-size:20px;margin-top:20px;"></p>
+
+<script>
+function launch(route) {
+    fetch(route)
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById('status').innerText = data.status;
+    });
+}
+</script>
+
+</body>
+</html>

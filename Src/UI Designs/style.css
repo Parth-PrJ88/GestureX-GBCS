@@ -1,0 +1,441 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #e0f7fa;
+}
+
+
+/* Navbar */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: black;
+    padding: 1.2rem; /* 10px */
+    font-size: 1.4rem;
+    color: white;
+    padding-left: 4rem;
+}
+
+    /* Navbar links */
+.navbar a {
+    margin-right: 4rem;
+    /* padding: 20px; */
+    font-size: 1.6rem;
+    /* font-size: 1.4rem; */
+    color: white;
+    font-weight: 500;
+    text-decoration: none;
+    transition: 0.5s ease;
+    border-bottom: 3px solid transparent;
+}
+
+    /* Navbar link hover effect */
+.navbar a:hover, .navbar a:active {
+    color: turquoise;
+    /* font-size: 140%; */
+    border-bottom: 3px solid turquoise;
+}
+
+
+/* Hero-Main Section */
+main {
+    padding: 3rem;
+    background: linear-gradient(to top, rgba(0, 255, 255, 0.33), transparent 55%);
+}
+
+.title{
+    margin-top: 3rem;
+}
+
+.title h1{
+    text-align: center;
+    font-size: 12rem;
+    font-weight: 800;
+    letter-spacing: 5px;
+    line-height: 1;
+    /* background-image: linear-gradient(rgb(122,122,122),rgb(252,252,252)); */
+    background-image: linear-gradient(rgb(0, 0, 0),#e0f7fa 110%);
+    color: transparent;
+    background-clip: text;
+    margin-bottom: 0rem;
+}
+
+.hero {
+    text-align: center;
+    /* padding-top: 40px; */
+}
+.hero h1 {
+    font-size: 4rem;
+    font-family: 'Calibri';
+    font-weight: 600;
+}
+.hero p {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-top: -1.2rem;
+}
+
+    /* Button Try-it-Now */
+.button-center {
+    text-align: center;
+    margin-top: 20px;
+    padding: 2rem;
+}
+
+.btn{
+    font-family: 'Calibri';
+    font-size: 1.3rem;
+    font-weight: 800;
+    margin-top: 0.8rem;
+    padding: 0.8rem 10rem;
+    /* padding: 0px 20px; Horizontal padding */
+    /* background-color: rgba(124, 234, 234, 0.1); */
+    color: #76b0ab;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: 0.5s ease;
+}
+
+.btn:hover{
+    background-color: #cbcfff;
+    font-size: 1.5rem;
+    color: black;
+    box-shadow: 0px 6px 8px aqua;
+}
+
+    /* Style for button */
+    /* button { */
+        /* padding: 0px 20px; Horizontal padding */
+        /* height: 50px; Fixed height */
+        /* border: 4px solid aqua; Aqua border */
+        /* border-radius: 10px; Rounded corners */
+        /* box-shadow: 0 4px 8px rgba(0, 0,256); Subtle shadow */
+    /* } */
+
+    /* Scroll Bar Animation */
+.scroll-bar{
+    height: 18rem;
+    width: 5rem;
+    position: absolute;
+    justify-self: center;
+    top: 84%;
+    border-radius: 80px;
+    cursor: grab;
+    z-index: 0;
+    /* box-shadow: 0 0 15px #e0f7fa; */
+}
+.scroll-bar:hover{
+    transition: 1s;
+    /* box-shadow: 0 0 15px aqua; */
+    transform: translateY(10px);
+}
+
+    /* Scroll Arrow Animation */
+.scroll-bar::before,
+.scroll-bar::after{
+    content: "";
+    position: absolute;
+    top: 20%;
+    left: 50%;
+    height: 20px;
+    width: 20px;
+    transform: translate(-50%, -100%) rotate(45deg);
+    border: 8px solid black;
+    border-top: transparent;
+    border-left: transparent;
+    animation: scroll 2s ease-in-out infinite;
+}
+
+.scroll-bar::before{
+    top: 20%;
+    animation-delay: 1s;
+}
+
+@keyframes scroll{
+    0%{    
+        opacity: 0;
+    }
+    30%,60%{
+        opacity: 1;
+    }
+    100%{
+        opacity: 0;
+        top: 90%;
+    }
+}
+
+
+/* Section Titles */
+#pro-title, #cont-title, #pro-members {
+    font-size: 8rem;
+    /* font-weight: 600; */
+    font-family: 'Calibri';
+    letter-spacing: 1px;
+    margin-bottom: 2rem;
+    background: transparent;
+    text-align: center;
+}
+
+
+/* Project Overview Section */
+.Project {
+    padding-top: 12rem;
+    background: linear-gradient(to bottom, rgba(0, 255, 255, 0.33), transparent 90%);
+}
+
+.container {
+    /* max-width: 800px; Limit container width */
+    margin: 2rem;
+    /* margin-bottom: 1rem; */
+}
+    /* Headings */
+.container h3 {
+    font-size: 3.5rem;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    padding-left: 5%;
+    padding-right: 5%;
+}
+
+    /* Paragraphs */
+.container p {
+    font-size: 2rem;
+    font-weight: 600;
+    font-family: 'Calibri';
+    line-height: 1.8;
+    padding-left: 5%;
+    padding-right: 5%;
+    margin-bottom: -4%;
+}
+
+::-webkit-scrollbar {
+    width: 1.3rem;
+}
+
+::-webkit-scrollbar-thumb {
+    border-radius: 1rem;
+    background: #cbcfff;
+    transition: all 0.5s ease-in-out;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: aqua;
+}
+
+::-webkit-scrollbar-track {
+    background: #f9f9f9;
+}
+
+.box-container {
+    max-width: 124rem;
+    padding: 0 1rem;
+    margin: 0 auto;
+}
+
+#box {
+    padding: 4rem 0;
+}
+
+    /* Slider Container Styling */
+#box .slider {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    height: 52rem;
+    padding: 2rem 0;
+    position: relative;
+}
+
+    /* Individual Slide Styling */
+.slide {
+    width: 36rem;
+    height: 42rem;
+    position: relative;
+}
+
+    /* Slide Content Styling */
+.slide .slide-content {
+    border: 15px solid aqua;    /* Aqua border */
+    border-radius: 2rem;
+    background-color: #cbcfff;  /* Slide background color */
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+    /* Slide Headings */
+.slide-content h3 {
+    text-align: center;
+    padding-left: 15%;
+    padding-right: 15%;
+    font-size: 3.2rem;
+    padding-top: 2rem;
+    color: white;
+}
+
+    /* Slide Text */
+.text {
+    margin-top: 1rem;
+    text-align: left;
+    padding-left: 15%;
+    padding-right: 15%;
+    line-height: 1.8;
+    font-size: 1.8rem;
+}
+
+    /* Positioning Slide Content */
+.slide-content {
+    position: absolute;
+    bottom: 2rem;
+    left: 2rem;
+    color: black;
+}
+
+/*  Hide Shadows 
+.swiper-slide-shadow-left,
+.swiper-slide-shadow-right { 
+    display: none;
+} */
+
+    /* Slider Controls */
+.slider-control {
+    position: relative;
+    bottom: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    /* Positioning Next Button */
+.slider-control .swiper-button-next {
+    left: 58% !important;
+    transform: translateX(-58%) !important;
+}
+
+@media (max-width:990px) {
+    .slider-control .swiper-button-next {
+        left: 70% !important;
+        transform: translateX(-70%) !important;
+    }
+}
+
+@media (max-width:450px) {
+    .slider-control .swiper-button-next {
+        left: 80% !important;
+        transform: translateX(-80%) !important;
+    }
+}
+
+    /* Positioning Prev Button */
+@media (max-width:990px) {
+    .slider-control .swiper-button-prev {
+        left: 30% !important;
+        transform: translateX(-30%) !important;
+    }
+}
+
+@media (max-width:450px) {
+    .slider-control .swiper-button-prev {
+        left: 20% !important;
+        transform: translateX(-20%) !important;
+    }
+}
+
+    /* Slider Arrows */
+.slider-control .slider-arrow {
+    background: white;
+    width: 3.5rem;
+    height: 3.5rem;
+    border: aqua 5px solid; /* Aqua border */
+    border-radius: 50%;
+    left: 42%;
+    transform: translateX(-42%);
+    /* filter: drop-shadow(0px 8px 24px rgba(18, 28, 53, 0.1)); */
+}
+
+.slider-control .slider-arrow ion-icon {
+    font-size: 2rem;
+    color: black;   /* Arrow color */
+    font-weight: 500;
+}
+
+.slider-control .slider-arrow::after {
+    content: '';
+}
+
+.slider-control .swiper-pagination {
+    position: relative;
+    width: 15rem;
+    bottom: 1rem;
+}
+
+.swiper-pagination{
+    position: relative;
+    margin-top: 2.8rem; /* Adjust margin to move pagination down */
+}
+
+.slider-control .swiper-pagination .swiper-pagination-bullet {
+    filter: drop-shadow(0px 8px 24px rgba(44, 18, 53, 0.1)); /* Shadow effecs of points in B/w btn */
+}
+
+.slider-control .swiper-pagination .swiper-pagination-bullet-active {
+    background: aqua;   /* Active bullet color */
+}
+
+
+/* Project Members Section */
+.ProjectMembers {
+    padding: 3rem;
+}
+
+    /* Cards Grid */
+.cards {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 30px;
+    flex-wrap: wrap;
+}
+
+.card {
+    width: 250px;
+    padding: 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 0 6px rgba(0,0,0,0.15);
+    text-align: center;
+}
+
+.card button {
+    padding: 7px 15px;
+    background: black;
+    color: white;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+/* Contact Us Section */
+.Contact {
+    padding: 3rem;
+}
+
+/* Center headings */
+.center {
+    text-align: center;
+    margin-top: 20px;
+}
+
+/* Footer */
+footer {
+    margin-top: 30px;
+    text-align: center;
+    padding: 10px;
+    background: black;
+    color: white;
+}

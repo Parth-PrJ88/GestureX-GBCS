@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>GBCS - Gesture Based Control System</title>
+    <link rel="stylesheet" href="/UI/templates/style.css">
+    <!--Slider CSS-->
+    <link rel="stylesheet" href="https://unpkg.com/swiper@8/swiper-bundle.min.css" />
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+    <!-- Navbar -->
+    <section class="Nav">
+        <div class="navbar">
+            <div class="left"><h1>GestureX</h1></div>
+            <div class="right">
+                <a href="/UI/templates/index for VS.html">Home</a>
+                <a href="/UI/templates/index for VS.html">Projects</a>
+                <a href="/UI/templates/index for VS.html">About</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Hero Section -->
+    <main>
+        <div class="title">
+           <h1>GestureX</h1>
+           <!-- <div class="logo">
+                    <img src="/UI/static/Logo.png" alt="Team Logo">
+                </div> -->
+        </div>
+
+        <div class="hero">
+            <h1>Gesture Based Control System</h1>
+            <p>A hands-free computer interaction using eye gaze & gesture tracking</p>
+        </div>
+
+        <div class="button-center">
+            <button class="btn" onclick="launch('/alignment')"><h3>Try it Now</h3></button>
+        </div>
+
+        <p id="status" style="text-align:center;font-size:20px;margin-top:20px;"></p>
+    
+        <div class="scroll-bar"></div>
+        
+    </main>
+
+    <script>
+    function launch(route) {
+        fetch(route)
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('status').innerText = data.status;
+        });
+    }
+    </script>
+
+    <!-- Overview-->  
+    <section class="Project">
+        <div class="project-title">
+            <h2 class="center" id="pro-title">Project</h2>
+        </div>
+
+        <div class="container">
+            <h3>Project Goal</h3>
+            <p>
+                The aim of GBCS is to allow hands-free interaction with a computer
+                using eye gaze tracking and hand gestures. It is designed for
+                paralysed and physically challenged individuals.
+            </p>
+        </div>
+
+        <!-- Slider -->
+        <section id="box">
+            <div class="box-container">
+                <div class="swiper slider">
+                    <div class="swiper-wrapper">
+                        <!-- Slide-start -->
+                        <div class="swiper-slide slide">
+                            <div class="slide-content">
+                                <h3>Technologies</h3>
+                                <h2 class="text">
+                                    <ul>
+                                        <li>OpenCV</li>
+                                        <li>Mediapipe FaceMesh</li>
+                                        <li>PyAutoGUI</li>
+                                        <li>Mathematical Regression Mapping</li>
+                                    </ul>
+                                </h2>
+                            </div>
+                        </div>
+                        <!-- Slide-end -->
+                        <!-- Slide-start -->
+                        <div class="swiper-slide slide">
+                            <div class="slide-content">
+                                <h3>Features</h3>
+                                <h2 class="text">
+                                    <ul>
+                                        <li>OpenCVCursor Control</li>
+                                        <li>Calibration System</li>
+                                        <li>Heatmap Tracking</li>
+                                        <li>Gesture Recognition</li>
+                                        <li>Clicking Mechanism (Coming Soon)</li>
+                                    </ul>
+                                </h2>
+                            </div>
+                        </div>
+                        <!-- Slide-end -->
+                        <!-- Slide-start -->
+                        <div class="swiper-slide slide">
+                            <div class="slide-content">
+                                <h3>Benefits</h3>
+                                <h2 class="text">
+                                    <ul>
+                                        <li>Hands-free usage</li>
+                                        <li>No Need of mouse</li>
+                                        <li>Accessible for disabled users</li>
+                                        <li>Medical application</li>
+                                        <li>Heatmap based Tracking</li>
+                                    </ul>
+                                </h2>
+                            </div>
+                        </div>
+                        <!-- Slide-end -->
+                        <!-- Slide-start -->
+                        <div class="swiper-slide slide">
+                            <div class="slide-content">
+                                <h3>Future Updates</h3>
+                                <h2 class="text">
+                                    <ul>
+                                        <li>Improve gesture recognition accuracy</li>
+                                        <li>Add customizable gestures</li>
+                                        <li>Integrate Multiple Ways for Control System</li>
+                                    </ul>                        
+                                </h2>
+                            </div>
+                        </div>
+                        <!-- Slide-end -->
+                    </div>
+
+                    <div class="slider-control">
+                        <div class="swiper-button-prev slider-arrow">
+                            <ion-icon name="arrow-back-outline">L</ion-icon>
+                        </div>
+                        <div class="swiper-button-next slider-arrow">
+                            <ion-icon name="arrow-forward-outline">R</ion-icon>
+                        </div>
+                        <div class="swiper-pagination"></div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <script src="https://unpkg.com/swiper@8/swiper-bundle.min.js"></script>
+        <script src="script.js"></script>
+
+    <!-- Project Members info -->
+    <section class="ProjectMembers">
+        <div class="projectmembers-title">
+            <h2 class="center" id="pro-members">Project Members</h2>
+        </div>
+        <div class="cards">
+            <div class="card">
+                <h3>Member 1</h3>
+                <p>Role: Lead Developer</p>
+            </div>
+            <div class="card">
+                <h3>Member 2</h3>
+                <p>Role: UI/UX Designer</p>
+            </div>
+            <div class="card">
+                <h3>Member 3</h3>
+                <p>Role: Gesture System Developer</p>
+            </div>
+            <div class="card">
+                <h3>Member 4</h3>
+                <p>Role: Tester & Documenter</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact us -->
+    <section class="Contact">
+        <div class="contact-title">
+            <h2 class="center" id="cont-title">Contact Us</h2>
+        </div>
+        <div class="container">
+            <ul>
+                <li>Email</li> 
+                <li>Contact no.</li>
+                <li>Linkdn</li> 
+                <li>X(Twitter)</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        GestureX Team | 2024-26
+    </footer>
+
+</body>
+</html>

@@ -1,3 +1,9 @@
+/* Set scroll padding to navigation height */
+// const navigation = document.querySelector(".primary-navigation");
+// const navigationHeight = navigation.offsetheight;
+// document.documentElement.style.setProperty("--scroll-padding", navigationHeight + "px");
+
+/* Initialize Swiper */
 var BoxSlider = new Swiper('.slider', {
   effect: 'coverflow',
   grabCursor: true,

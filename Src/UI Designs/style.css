@@ -1,3 +1,9 @@
+html {
+    scroll-behavior: smooth; /* Smooth scrolling */
+    scroll-padding: 6rem;  /* Space from top when scrolling to a section */
+    /*  scroll-padding: --var(scroll-padding, 5rem);    /* Using CSS+JS */
+}
+
 body {
     margin: 0;
     font-family: Arial, sans-serif;
@@ -6,6 +12,14 @@ body {
 
 
 /* Navbar */
+    /* Sticky Navbar */
+.Nav{
+    position: sticky;
+    top: 0;
+    backdrop-filter: blur(45px);
+    z-index: 100;
+}
+
 .navbar {
     display: flex;
     justify-content: space-between;
@@ -38,8 +52,8 @@ body {
 }
 
 
-/* Hero-Main Section */
-main {
+/* Main Section */
+.Home {
     padding: 3rem;
     background: linear-gradient(to top, rgba(0, 255, 255, 0.33), transparent 55%);
 }
@@ -392,38 +406,125 @@ main {
     padding: 3rem;
 }
 
-    /* Cards Grid */
-.cards {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    padding: 30px;
-    flex-wrap: wrap;
+    /* Title Styling */
+.projectmembers-title {
+    margin-bottom: 5rem;
 }
 
-.card {
-    width: 250px;
-    padding: 20px;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 0 6px rgba(0,0,0,0.15);
-    text-align: center;
+    /* Project Container Grid Styling */
+.project-container{
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(65rem, 1fr));    /* Responsive columns */
+    gap: 5rem;  /* Gap between cards */
+    justify-content: center;    /* Center the grid */
+    justify-items: center;  /* Center items within grid cells */
 }
 
-.card button {
-    padding: 7px 15px;
-    background: black;
-    color: white;
-    border-radius: 6px;
-    border: none;
-    cursor: pointer;
-    margin-top: 10px;
+.card-section{
+  /* margin: 5rem; */
+  /* height: 25rem;  Set a fixed height   */
+  width: 60rem; /* Set a fixed width */
+  /* overflow: hidden; */
+  background-color:#4ad0ee2b;
+  backdrop-filter: blur(10px);
+  border-radius: 50px;
+  box-shadow: 5px 5px 20px 1px #4acfee;
 }
+
+    /* Card Styling */
+.card{
+  align-items: center;
+  display: flex;
+  height: 22rem;
+  padding: 3rem;
+  color: black;
+  justify-content: stretch;
+}
+
+    /* Heading inside card */
+.card h1{
+  font-size: 4rem;
+  font-family: "Calibri";
+  margin-bottom: 1rem;
+}
+
+    /* Paragraph inside card */
+.card p{
+  max-width: 30rem;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  font-size: 1.8rem;
+}
+
+    /* Unordered List Styling */
+ul{
+  padding: 0;
+  margin: 0;
+  margin-bottom: 1rem;
+}
+
+    /* Social Media Icons Styling */
+.ul-icons{
+  display: flex;
+  align-items: center;
+}
+
+    /* List Items Styling */
+.ul-icons li{
+  list-style: none;
+  margin-right: 0.8rem;
+}
+
+.ul-icons a{
+  display: inline-flex; 
+  padding: 8px; /* Padding inside the icon */
+  border: 3px solid #4acfee;
+  border-radius: 50%;
+  font-size: 2.5rem; /* Icon size */
+  color: #4acfee;
+  text-decoration: none;
+  transition: 0.3s;
+}
+
+.ul-icons a:hover{
+  background: #4acfee;
+  color: #0e1217;
+  box-shadow: 0 0 10px #4acfee;
+}
+
+    /* Card Image Circle Styling */
+.card-img{
+  width: 300px;
+  height: 300px;
+  background-color: transparent;
+  position: absolute;
+  right: 10%;
+  border-radius: 100%;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 0 10px #4eddfd;
+  transition: 0.5s;
+}
+
+.card-img:hover{
+  box-shadow: 0 0 80px #4acfee; 
+  transform: scale(1.1);  /* Enlarge the image */
+}
+
+    /* Image inside card-img */
+.card-img img{
+  position: absolute;
+  width: 85%;
+  mix-blend-mode: lighten;
+}
+
 
 /* Contact Us Section */
 .Contact {
     padding: 3rem;
 }
+
 
 /* Center headings */
 .center {

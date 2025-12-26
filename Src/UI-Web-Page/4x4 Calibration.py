@@ -1,10 +1,4 @@
 # src/gaze_prototype_with_alignment_4x4_with_drags_fixed_endpoint.py
-# Updated prototype:
-#  - 4x4 grid (phase 1)
-#  - Phase 2: slower center->edge drags, arrow indicator at center, record drag samples to JSON,
-#             then place a calibration point at each edge and sample SAMPLES_PER_POINT there
-#  - Fix: ensure drag animation ends exactly at the edge and immediately start sampling there (no pop)
-#
 # Requirements:
 # pip install mediapipe opencv-python numpy pyautogui scipy PyGetWindow
 #
@@ -20,48 +14,6 @@ import pyautogui
 import csv
 from scipy.stats import pearsonr
 
-# ==========================================
-# CURSOR CONTROL (HIDE + SHOW)
-# ==========================================
-import ctypes
-import threading
-import time
-
-_cursor_hidden = False  # keeps track of visibility state
-
-def hide_cursor():
-    """
-    Hides mouse cursor using Windows API.
-    Safe for 64bit systems.
-    Does nothing if already hidden.
-    """
-    global _cursor_hidden
-    if _cursor_hidden:  
-        return  # already hidden — skip
-    
-    # ctypes.windll.user32.ShowCursor(0) → hide request
-    # multiple calls reduce counter and ensures hiding
-    for _ in range(10):
-        ctypes.windll.user32.ShowCursor(False)
-
-    _cursor_hidden = True
-
-
-def show_cursor():
-    """
-    Makes cursor visible again.
-    Called after calibration or cursor control mode ends.
-    """
-    global _cursor_hidden
-    if not _cursor_hidden:
-        return  # cursor already visible — skip
-
-    for _ in range(10):
-        ctypes.windll.user32.ShowCursor(True)
-
-    _cursor_hidden = False
-# ==========================================
-
 try:
     import pygetwindow as gw
 except Exception:
@@ -72,19 +24,19 @@ except Exception:
 # ----------------------
 OUT_CSV = Path("data/eye_landmarks.csv")
 OUT_MAP = Path("data/gaze_map.json")
-OUT_DRAG_JSON = Path("data/drag_samples.json")   # new: store drag samples for analysis
+OUT_DRAG_JSON = Path("data/drag_samples.json")
 OUT_CSV.parent.mkdir(parents=True, exist_ok=True)
 OUT_DRAG_JSON.parent.mkdir(parents=True, exist_ok=True)
 
-ALIGN_IMAGE_PATH = Path("assets/align_reference.png")  # optional alignment image
+ALIGN_IMAGE_PATH = Path("assets/align_reference.png")
 
 # Calibration params
-SAMPLES_PER_POINT = 30        # per-grid/corner/edge-point samples
-SAMPLES_PER_DRAG = 30         # samples recorded while dragging center->edge
+SAMPLES_PER_POINT = 30
+SAMPLES_PER_DRAG = 30
 PRE_FIXATION_SEC = 0.8
-TRANSITION_SEC = 0.8          # transition time for normal grid/corners
-DRAG_TRANSITION_SEC = 2.2     # << SLOWER drag transitions (user requested) - tune as needed
-GRID_POINTS = 16              # default 4x4
+TRANSITION_SEC = 0.8
+DRAG_TRANSITION_SEC = 2.2
+GRID_POINTS = 16
 TARGET_COLOR = (0, 0, 255)
 BACKGROUND_BRIGHTNESS = 255
 TARGET_RADIUS = 30
@@ -104,14 +56,14 @@ VIRTUAL_CURSOR_RADIUS = 60
 HEATMAP_DECAY = 0.95
 HEATMAP_SCALE = 4
 
-# Jump behavior: if predicted cursor is farther than this, snap (fast move)
-JUMP_RESET_PX = 200   # tune: 150-300
+# Jump behaviour
+JUMP_RESET_PX = 200
 
 # Screen size
 SCREEN_W, SCREEN_H = pyautogui.size()
 
 # ----------------------
-# MediaPipe initialization
+# MediaPipe init
 # ----------------------
 mp_face = mp.solutions.face_mesh
 face_mesh = mp_face.FaceMesh(max_num_faces=1,
@@ -123,7 +75,7 @@ LEFT_IRIS = [468, 469, 470, 471, 472]
 RIGHT_IRIS = [473, 474, 475, 476, 477]
 
 # ----------------------
-# Helper functions
+# Helpers
 # ----------------------
 def avg_landmark(landmarks, idxs):
     pts = [(landmarks[i].x, landmarks[i].y) for i in idxs]
@@ -167,7 +119,7 @@ def face_present_and_bright(results, frame, min_area_px=MIN_FACE_AREA_PX, min_br
     return present, mean_brightness, bbox
 
 # ----------------------
-# OS window helpers
+# Window helpers
 # ----------------------
 def bring_window_to_front_windows(title, retries=8, delay=0.08):
     try:
@@ -211,12 +163,8 @@ def bring_window_to_front(title):
             return True
     return bring_window_pygetwindow(title)
 
-# ----------------------
-# Hide/show system cursor (Windows). No-op on others.
-# ----------------------
 def hide_system_cursor():
     if sys.platform.startswith("win"):
-        # decrement ShowCursor until it returns <=0 to hide; store nothing (simple)
         ctypes.windll.user32.ShowCursor(False)
 
 def show_system_cursor():
@@ -224,7 +172,7 @@ def show_system_cursor():
         ctypes.windll.user32.ShowCursor(True)
 
 # ----------------------
-# Mapping helpers (unchanged)
+# Mapping helpers
 # ----------------------
 def build_design_matrix(eye_xy):
     x = eye_xy[:,0]; y = eye_xy[:,1]
@@ -257,7 +205,7 @@ def load_mapping():
     return json.load(open(OUT_MAP))
 
 # ----------------------
-# Heatmap helpers (fixed broadcasting orientation)
+# Heatmap helpers
 # ----------------------
 heatmap_h = max(1, SCREEN_H // HEATMAP_SCALE)
 heatmap_w = max(1, SCREEN_W // HEATMAP_SCALE)
@@ -265,20 +213,16 @@ heatmap = np.zeros((heatmap_h, heatmap_w), dtype=np.float32)
 
 def heatmap_add(px, py, strength=1.0, sigma=10.0):
     global heatmap, heatmap_w, heatmap_h
-
     cx = int(round(px / HEATMAP_SCALE))
     cy = int(round(py / HEATMAP_SCALE))
     if cx < 0 or cx >= heatmap_w or cy < 0 or cy >= heatmap_h:
         return
-
     sigma = max(1.0, float(sigma))
     half_size = int(min(max(3 * sigma, 3), max(heatmap_w, heatmap_h)))
-
     x0 = max(0, cx - half_size)
     x1 = min(heatmap_w - 1, cx + half_size)
     y0 = max(0, cy - half_size)
     y1 = min(heatmap_h - 1, cy + half_size)
-
     dx = np.arange(x0, x1 + 1) - cx
     dy = np.arange(y0, y1 + 1) - cy
     X, Y = np.meshgrid(dx, dy)
@@ -335,8 +279,23 @@ def countdown_on_canvas(win_name, seconds=3, cam=None):
         cv2.waitKey(1)
         time.sleep(1)
 
+def draw_plus_icon(canvas, cx, cy, plus_size, color=(255,255,255), thickness=2):
+    x0 = int(round(cx - plus_size))
+    x1 = int(round(cx + plus_size))
+    y0 = int(round(cy - plus_size))
+    y1 = int(round(cy + plus_size))
+    cv2.line(canvas, (x0, cy), (x1, cy), color, thickness, cv2.LINE_AA)
+    cv2.line(canvas, (cx, y0), (cx, y1), color, thickness, cv2.LINE_AA)
+
+def draw_target_with_plus(canvas, x, y, radius, show_plus=False):
+    cv2.circle(canvas, (int(x), int(y)), max(1, int(round(radius))), TARGET_COLOR, -1)
+    if show_plus:
+        plus_half_len = max(1, int(round(radius * 0.45)))
+        thickness = max(1, int(round(radius * 0.12)))
+        draw_plus_icon(canvas, int(x), int(y), plus_half_len, color=(255,255,255), thickness=thickness)
+
 # ----------------------
-# Alignment mode (brings window front)
+# Alignment mode
 # ----------------------
 def mode_alignment():
     cap = cv2.VideoCapture(0)
@@ -348,7 +307,6 @@ def mode_alignment():
     if ALIGN_IMAGE_PATH.exists():
         align_img = cv2.imread(str(ALIGN_IMAGE_PATH), cv2.IMREAD_UNCHANGED)
 
-    # show first frame quickly then bring to front (fixes "first camera opens in background")
     ret, frame = cap.read()
     if ret:
         preview = cv2.flip(frame, 1)
@@ -413,16 +371,11 @@ def mode_alignment():
     cv2.destroyWindow(win)
 
 # ----------------------
-# Calibration flow (updated)
+# Calibration flow
 # ----------------------
 def mode_calibration(num_points=16):
-    """
-    Phase 1: 4x4 grid smooth sampling
-    Phase 2: center->edge slow drags; save drag samples to JSON; after each drag sample at the edge point
-    Phase 3: corners TL->TR->BR->BL
-    """
-    print("Starting calibration...")
-    time.sleep(1)  # just delay 1 sec
+    print("Starting calibration. Make sure you're aligned and press Enter to begin.")
+    input("Press Enter to start (or Ctrl+C to cancel)...")
 
     if num_points == 9:
         n = 3
@@ -430,12 +383,10 @@ def mode_calibration(num_points=16):
         n = 4
         num_points = 16
 
-    # grid targets (phase 1)
     xs = np.linspace(0.12, 0.88, n)
     ys = np.linspace(0.12, 0.88, n)
     grid_targets = [(int(SCREEN_W * x), int(SCREEN_H * y)) for y in ys for x in xs]
 
-    # phase 2 edges from center
     center = (SCREEN_W // 2, SCREEN_H // 2)
     edge_targets = [
         ("left",  (int(SCREEN_W * 0.05), center[1])),
@@ -444,12 +395,11 @@ def mode_calibration(num_points=16):
         ("down",  (center[0], int(SCREEN_H * 0.95))),
     ]
 
-    # phase 3 corners
     corners = [
-        (int(SCREEN_W * 0.05), int(SCREEN_H * 0.05)),   # TL
-        (int(SCREEN_W * 0.95), int(SCREEN_H * 0.05)),   # TR
-        (int(SCREEN_W * 0.95), int(SCREEN_H * 0.95)),   # BR
-        (int(SCREEN_W * 0.05), int(SCREEN_H * 0.95)),   # BL
+        (int(SCREEN_W * 0.05), int(SCREEN_H * 0.05)),
+        (int(SCREEN_W * 0.95), int(SCREEN_H * 0.05)),
+        (int(SCREEN_W * 0.95), int(SCREEN_H * 0.95)),
+        (int(SCREEN_W * 0.05), int(SCREEN_H * 0.95)),
     ]
 
     cap = cv2.VideoCapture(0)
@@ -459,29 +409,65 @@ def mode_calibration(num_points=16):
     win = "Calibration - look at the red dot"
     cv2.namedWindow(win, cv2.WINDOW_NORMAL)
     cv2.setWindowProperty(win, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-    canvas_show = make_fullscreen_canvas(255)
-    cv2.imshow(win, canvas_show); cv2.waitKey(1)
+    cv2.imshow(win, make_fullscreen_canvas(255)); cv2.waitKey(1)
     bring_window_to_front(win)
     hide_system_cursor()
 
     countdown_on_canvas(win, seconds=3, cam=cap)
 
-    collected = []  # all collected samples across phases
-    drag_record_list = []  # will store dictionaries for JSON (phase 2)
+    def show_center_message(text, secs=3):
+        t0 = time.time()
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        scale = min(SCREEN_W, SCREEN_H) / 1600.0 * 2.0
+        thickness = max(2, int(3 * scale))
+        while time.time() - t0 < secs:
+            ret, frame = cap.read()
+            canvas = make_fullscreen_canvas(255)
+            if ret:
+                draw_camera_inset(canvas, cv2.flip(frame, 1))
+            lines = []
+            max_width = int(SCREEN_W * 0.8)
+            words = str(text).split()
+            cur = ""
+            for w in words:
+                test = (cur + " " + w).strip()
+                (tw, th), _ = cv2.getTextSize(test, font, fontScale=2.0*scale, thickness=thickness)
+                if tw > max_width and cur:
+                    lines.append(cur)
+                    cur = w
+                else:
+                    cur = test
+            if cur:
+                lines.append(cur)
+            total_h = len(lines) * int(40 * scale)
+            y0 = (SCREEN_H // 2) - (total_h // 2)
+            for i, ln in enumerate(lines):
+                (tw, th), _ = cv2.getTextSize(ln, font, fontScale=2.0*scale, thickness=thickness)
+                x = (SCREEN_W - tw) // 2
+                y = int(y0 + i * 40 * scale + th)
+                cv2.putText(canvas, ln, (x, y), font, 2.0*scale, (0,0,255), thickness, cv2.LINE_AA)
+            cv2.imshow(win, canvas)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                return True
+        return False
 
-    # Helper to draw arrow at center pointing to (tx,ty)
+    if show_center_message("Follow the dots", secs=3):
+        cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
+
+    collected = []
+    drag_record_list = []
+
     def draw_center_arrow(canvas, tx, ty):
         cx, cy = center
         vecx = tx - cx; vecy = ty - cy
         norm = math.hypot(vecx, vecy)
         if norm < 1: norm = 1.0
-        # arrow length limited to 300 px for visibility
         length = min(300, int(norm * 0.6) if norm > 0 else 100)
         ux = int(round(cx + (vecx / norm) * length))
         uy = int(round(cy + (vecy / norm) * length))
         cv2.arrowedLine(canvas, (cx, cy), (ux, uy), (0,0,255), 8, tipLength=0.25)
 
-    # time-based animator; can optionally record while moving
+    # Animator returns rec, early_quit, final_radius_at_endpoint (alpha==1), peak_radius_during_transition
     def animate_transition_and_maybe_sample(sx0, sy0, sx1, sy1,
                                            record_while=False, max_samples=0, instruction=None,
                                            drag_mode=False, edge_name=None):
@@ -489,25 +475,21 @@ def mode_calibration(num_points=16):
         t_start = time.time()
         samples_taken = 0
         duration = DRAG_TRANSITION_SEC if drag_mode else TRANSITION_SEC
+        peak_rr = 0.0
         while True:
             elapsed = time.time() - t_start
             alpha = min(1.0, elapsed / duration)
             px = int(round(sx0 + alpha * (sx1 - sx0)))
             py = int(round(sy0 + alpha * (sy1 - sy0)))
             canvas = make_fullscreen_canvas(255)
-            rr = int(TARGET_RADIUS * (0.8 + 0.4 * (1 - abs(0.5 - alpha))))
-            cv2.circle(canvas, (px, py), rr, TARGET_COLOR, -1)
-
-            # if drag_mode and we are starting from center, draw arrow pointing to target
-            if drag_mode and (sx0, sy0) == center:
-                draw_center_arrow(canvas, sx1, sy1)
-                if instruction:
-                    cv2.putText(canvas, instruction, (30, SCREEN_H - 60),
-                                cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,0,255), 2)
-
+            rr = TARGET_RADIUS * (0.8 + 0.4 * (1 - abs(0.5 - alpha)))
+            if rr > peak_rr:
+                peak_rr = rr
+            rr_i = int(round(rr))
+            # draw circle + plus during transition so the "+" is visible while dot moves
+            draw_target_with_plus(canvas, px, py, rr_i, show_plus=True)
             cv2.imshow(win, canvas)
 
-            # capture frame and optionally record sample
             ret, frame = cap.read()
             if not ret:
                 break
@@ -526,27 +508,20 @@ def mode_calibration(num_points=16):
                     samples_taken += 1
 
             if alpha >= 1.0:
-                # Ensure final exact endpoint frame is rendered (no off-by-one rounding mismatch)
+                rr_final = TARGET_RADIUS  # rr at alpha==1
                 final_canvas = make_fullscreen_canvas(255)
-                rr_final = int(TARGET_RADIUS * 0.6)
-                cv2.circle(final_canvas, (sx1, sy1), rr_final, TARGET_COLOR, -1)
-                # keep arrow on final frame if it was a center->edge drag
-                if drag_mode and (sx0, sy0) == center:
-                    draw_center_arrow(final_canvas, sx1, sy1)
-                    if instruction:
-                        cv2.putText(final_canvas, instruction, (30, SCREEN_H - 60),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,0,255), 2)
+                # show plus in the final endpoint frame as well
+                draw_target_with_plus(final_canvas, sx1, sy1, int(round(rr_final)), show_plus=True)
                 cv2.imshow(win, final_canvas)
                 cv2.waitKey(1)
-                # tiny hold so user sees dot landed exactly where sampling will start
                 time.sleep(0.12)
-                break
+                # return both endpoint radius and the peak radius observed during transition
+                return rec, False, float(rr_final), float(peak_rr)
             if cv2.waitKey(1) & 0xFF == ord('q'):
-                return rec, True
-        return rec, False
+                return rec, True, float(TARGET_RADIUS * 0.6), float(peak_rr)
 
     # -------------------------
-    # Phase 1: grid sampling (smooth)
+    # Phase 1: grid sampling
     # -------------------------
     for i, (tx, ty) in enumerate(grid_targets):
         if i == 0:
@@ -554,7 +529,7 @@ def mode_calibration(num_points=16):
         else:
             cur_x, cur_y = grid_targets[i-1]
 
-        _, early_quit = animate_transition_and_maybe_sample(cur_x, cur_y, tx, ty, record_while=False)
+        rec, early_quit, end_radius, peak_radius = animate_transition_and_maybe_sample(cur_x, cur_y, tx, ty, record_while=False)
         if early_quit:
             cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
 
@@ -567,8 +542,11 @@ def mode_calibration(num_points=16):
             results = face_mesh.process(rgb)
             present, brightness, bbox = face_present_and_bright(results, frame)
             if present:
+                # Use peak_radius as the starting displayed size so sampling starts at the same big size
+                displayed_radius = float(peak_radius if peak_radius and peak_radius > 0 else end_radius)
+                sample_target_radius = TARGET_RADIUS * 0.6
                 canvas = make_fullscreen_canvas(255)
-                cv2.circle(canvas, (tx, ty), int(TARGET_RADIUS * 0.6), TARGET_COLOR, -1)
+                draw_target_with_plus(canvas, tx, ty, displayed_radius, show_plus=True)
                 cv2.putText(canvas, "Starting sample...", (30, SCREEN_H - 60), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,200,0), 2)
                 cv2.imshow(win, canvas)
                 cv2.waitKey(300)
@@ -586,8 +564,12 @@ def mode_calibration(num_points=16):
                     cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
                 time.sleep(0.05)
 
-        # sample at grid point
         samples = 0
+        try:
+            displayed_radius
+        except NameError:
+            displayed_radius = float(TARGET_RADIUS)
+        sample_target_radius = TARGET_RADIUS * 0.6
         while samples < SAMPLES_PER_POINT:
             ret, frame = cap.read()
             if not ret:
@@ -596,7 +578,6 @@ def mode_calibration(num_points=16):
             results = face_mesh.process(rgb)
             present, brightness, bbox = face_present_and_bright(results, frame)
             if not present:
-                # pause and resume behavior
                 while True:
                     ret2, frame2 = cap.read()
                     if not ret2:
@@ -636,8 +617,11 @@ def mode_calibration(num_points=16):
                 collected.append((ex, ey, tx, ty))
                 samples += 1
 
+            # smooth shrink of circle and plus regardless of where gaze is (visual feedback tied to sample progress)
+            displayed_radius += (sample_target_radius - displayed_radius) * 0.12
+
             canvas = make_fullscreen_canvas(255)
-            cv2.circle(canvas, (tx, ty), int(TARGET_RADIUS * 0.6), TARGET_COLOR, -1)
+            draw_target_with_plus(canvas, tx, ty, displayed_radius, show_plus=True)
             cv2.putText(canvas, f"Collecting {samples}/{SAMPLES_PER_POINT}", (30, SCREEN_H - 60),
                         cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,0,255), 2)
             cv2.imshow(win, canvas)
@@ -645,25 +629,27 @@ def mode_calibration(num_points=16):
                 cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
 
     # -------------------------
-    # Phase 2: slower center -> edges drag recording + post-drag calibration point
+    # Phase 2: drags + edge sampling
     # -------------------------
+    phase2_instruction = "Follow the direction of arrow."
+    if show_center_message(phase2_instruction, secs=3):
+        cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
+
     for edge_name, (etx, ety) in edge_targets:
-        instruction = f"Now drag your head/gaze from CENTER to the {edge_name.upper()} edge. Follow the red dot."
-        # animate center->edge while recording SAMPLES_PER_DRAG
-        rec, early = animate_transition_and_maybe_sample(center[0], center[1], etx, ety,
-                                                         record_while=True, max_samples=SAMPLES_PER_DRAG,
-                                                         instruction=instruction,
-                                                         drag_mode=True, edge_name=edge_name)
+        rec, early, end_radius, peak_radius = animate_transition_and_maybe_sample(center[0], center[1], etx, ety,
+                                                                                   record_while=True, max_samples=SAMPLES_PER_DRAG,
+                                                                                   instruction=None, drag_mode=True, edge_name=edge_name)
         if early:
             cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
 
-        # append recorded drag samples to main collected and also save to drag_record_list for JSON
         for d in rec:
             collected.append((d["ex"], d["ey"], d["px"], d["py"]))
         drag_record_list.extend(rec)
 
-        # Immediately begin sampling at the exact endpoint (etx,ety) — no extra pop
         samples = 0
+        # start sampling at the peak radius observed during transition so size continuity is preserved
+        displayed_radius = float(peak_radius if peak_radius and peak_radius > 0 else end_radius)
+        sample_target_radius = TARGET_RADIUS * 0.6
         while samples < SAMPLES_PER_POINT:
             ret, frame = cap.read()
             if not ret:
@@ -672,7 +658,6 @@ def mode_calibration(num_points=16):
             results = face_mesh.process(rgb)
             present, brightness, bbox = face_present_and_bright(results, frame)
             if not present:
-                # pause-resume as before
                 while True:
                     ret2, frame2 = cap.read()
                     if not ret2:
@@ -712,16 +697,41 @@ def mode_calibration(num_points=16):
                 collected.append((ex, ey, etx, ety))
                 samples += 1
 
+            displayed_radius += (sample_target_radius - displayed_radius) * 0.12
+
             canvas = make_fullscreen_canvas(255)
-            # draw the exact same endpoint we used in the animator so sampling looks continuous
-            cv2.circle(canvas, (etx, ety), int(TARGET_RADIUS * 0.6), TARGET_COLOR, -1)
+            draw_target_with_plus(canvas, etx, ety, displayed_radius, show_plus=True)
             cv2.putText(canvas, f"Edge-sampling {samples}/{SAMPLES_PER_POINT}", (30, SCREEN_H - 60),
                         cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,0,255), 2)
             cv2.imshow(win, canvas)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
 
-    # Save drag samples JSON for analysis
+        # Smooth return from edge to center with increased speed
+        return_duration = 0.6  # Faster return (compared to 2.2s drag transition)
+        t_start = time.time()
+        while True:
+            elapsed = time.time() - t_start
+            alpha = min(1.0, elapsed / return_duration)
+            px = int(round(etx + alpha * (center[0] - etx)))
+            py = int(round(ety + alpha * (center[1] - ety)))
+            canvas = make_fullscreen_canvas(255)
+            rr = TARGET_RADIUS * (0.8 + 0.4 * (1 - abs(0.5 - alpha)))
+            rr_i = int(round(rr))
+            draw_target_with_plus(canvas, px, py, rr_i, show_plus=True)
+            cv2.imshow(win, canvas)
+            
+            ret, frame = cap.read()
+            if not ret:
+                break
+            
+            if alpha >= 1.0:
+                break
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
+            time.sleep(0.01)
+
+    # Save drag JSON
     try:
         existing = []
         if OUT_DRAG_JSON.exists():
@@ -745,11 +755,10 @@ def mode_calibration(num_points=16):
             start_x, start_y = center
         else:
             start_x, start_y = corners[i-1]
-        _, early_quit = animate_transition_and_maybe_sample(start_x, start_y, tx, ty, record_while=False)
+        rec, early_quit, end_radius, peak_radius = animate_transition_and_maybe_sample(start_x, start_y, tx, ty, record_while=False)
         if early_quit:
             cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
 
-        # pre-sample ensure face ok
         while True:
             ret, frame = cap.read()
             if not ret:
@@ -758,8 +767,10 @@ def mode_calibration(num_points=16):
             results = face_mesh.process(rgb)
             present, brightness, bbox = face_present_and_bright(results, frame)
             if present:
+                displayed_radius = float(peak_radius if peak_radius and peak_radius > 0 else end_radius)
+                sample_target_radius = TARGET_RADIUS * 0.6
                 canvas = make_fullscreen_canvas(255)
-                cv2.circle(canvas, (tx, ty), int(TARGET_RADIUS * 0.6), TARGET_COLOR, -1)
+                draw_target_with_plus(canvas, tx, ty, displayed_radius, show_plus=True)
                 cv2.putText(canvas, "Starting corner sample...", (30, SCREEN_H - 60), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,200,0), 2)
                 cv2.imshow(win, canvas)
                 cv2.waitKey(300)
@@ -777,8 +788,12 @@ def mode_calibration(num_points=16):
                     cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
                 time.sleep(0.05)
 
-        # sample corner
         samples = 0
+        try:
+            displayed_radius
+        except NameError:
+            displayed_radius = float(TARGET_RADIUS)
+        sample_target_radius = TARGET_RADIUS * 0.6
         while samples < SAMPLES_PER_POINT:
             ret, frame = cap.read()
             if not ret:
@@ -787,7 +802,6 @@ def mode_calibration(num_points=16):
             results = face_mesh.process(rgb)
             present, brightness, bbox = face_present_and_bright(results, frame)
             if not present:
-                # pause-resume as before
                 while True:
                     ret2, frame2 = cap.read()
                     if not ret2:
@@ -827,15 +841,17 @@ def mode_calibration(num_points=16):
                 collected.append((ex, ey, tx, ty))
                 samples += 1
 
+            displayed_radius += (sample_target_radius - displayed_radius) * 0.12
+
             canvas = make_fullscreen_canvas(255)
-            cv2.circle(canvas, (tx, ty), int(TARGET_RADIUS * 0.6), TARGET_COLOR, -1)
+            draw_target_with_plus(canvas, tx, ty, displayed_radius, show_plus=True)
             cv2.putText(canvas, f"Collecting corner {samples}/{SAMPLES_PER_POINT}", (30, SCREEN_H - 60),
                         cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,0,255), 2)
             cv2.imshow(win, canvas)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
 
-    # End calibration: fit mapping
+    # End calibration
     cap.release()
     show_system_cursor()
     cv2.destroyAllWindows()
@@ -865,7 +881,7 @@ def mode_calibration(num_points=16):
     print("Saved mapping to", OUT_MAP)
 
 # ----------------------
-# Cursor control (snappy + heatmap)
+# Cursor control
 # ----------------------
 def mode_cursor_control():
     mapping = load_mapping()
@@ -945,7 +961,7 @@ def mode_cursor_control():
         cv2.destroyAllWindows()
 
 # ----------------------
-# Main menu
+# Main
 # ----------------------
 if __name__ == "__main__":
     print("""
@@ -958,25 +974,12 @@ if __name__ == "__main__":
     while True:
         cmd = input("Enter mode: ").strip().lower()
         if cmd == "1":
-            hide_cursor()
-            try:
-                mode_alignment()
-            finally:
-                show_cursor()
+            mode_alignment()
         elif cmd == "2":
-            hide_cursor()
-            try:
-                mode_calibration(num_points=3*3 if GRID_POINTS == 9 else 16)
-            finally:
-                show_cursor()
+            mode_calibration(num_points=16)
         elif cmd == "3":
-            hide_cursor()
-            try:
-                mode_cursor_control()
-            finally:
-                show_cursor()
+            mode_cursor_control()
         elif cmd == "q":
-            show_cursor()  # extra safety
             break
         else:
             print("Invalid. Choose 1,2,3 or q.")

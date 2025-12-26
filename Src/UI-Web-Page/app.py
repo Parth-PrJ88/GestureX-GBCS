@@ -25,17 +25,6 @@ def run_python_mode(mode):
 def home():
     return render_template("index.html")
 
-
-@app.route("/about")
-def about():
-    return render_template("about.html")
-
-
-@app.route("/try")
-def try_now():
-    return render_template("try.html")
-
-
 @app.route("/alignment")
 def alignment():
     msg = run_python_mode(1)

@@ -7,6 +7,8 @@
 import sys, time, math, ctypes
 from pathlib import Path
 import json
+import os
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 import cv2
 import mediapipe as mp
 import numpy as np
@@ -15,13 +17,75 @@ import csv
 from scipy.stats import pearsonr
 import keyboard
 
-#True when launched from Flask
+
+# True when launched from Flask
+# -------------------------------------------
 WEB_MODE = len(sys.argv) > 1
 
 try:
     import pygetwindow as gw
 except Exception:
     gw = None
+
+
+# --------------------------------------------
+# Write JSON file for State Management
+# --------------------------------------------
+# PROGRESS_FILE = Path("progress.json")
+DATA_DIR = Path("data")
+PROGRESS_FILE = DATA_DIR / "progress.json"
+STOP_FILE = DATA_DIR / "stop.json"
+
+def update_progress(
+    phase,
+    progress,
+    message,
+    running=True,
+    completed=False
+):
+    with open(PROGRESS_FILE, "w") as f:
+        json.dump(
+            {
+                "phase": phase,
+                "progress": progress,
+                "message": message,
+                "running": running,
+                "completed": completed
+            },
+            f,
+            indent=4
+        )
+
+# Reset Workflow
+# --------------------------------------------
+def reset_workflow(message="Workflow cancelled."):
+    update_progress(
+        "Idle",
+        0,
+        message,
+        running=False,
+        completed=False
+    )
+
+# Workflow Stop Control
+# --------------------------------------------
+STOP_FILE = Path("data/stop.json")
+
+def request_stop():
+    with open(STOP_FILE, "w") as f:
+        json.dump({"stop": True}, f)
+
+def clear_stop():
+    with open(STOP_FILE, "w") as f:
+        json.dump({"stop": False}, f)
+
+def should_stop():
+    try:
+        with open(STOP_FILE, "r") as f:
+            return json.load(f).get("stop", False)
+    except:
+        return False
+
 
 # ----------------------
 # Configuration & paths
@@ -414,6 +478,14 @@ def draw_target_with_plus(canvas, x, y, radius, show_plus=False):
 # Alignment mode
 # ----------------------
 def mode_alignment():
+    clear_stop()
+    # Update state on Workflow Dashboard
+    update_progress(
+        "Alignment",
+        10,
+        "Initializing camera and alignment..."
+    )
+
     cap = cv2.VideoCapture(0)
     win = "Alignment - position your head inside the reference"
     cv2.namedWindow(win, cv2.WINDOW_NORMAL)
@@ -433,6 +505,14 @@ def mode_alignment():
     print("Alignment mode: Press 's' when aligned and face is green/ok (or 'q' to quit).")
 
     while True:
+
+        #trigger when clicks Stop btn
+        if should_stop():
+            cap.release()
+            cv2.destroyAllWindows()
+            reset_workflow("Alignment stopped by user.")
+            return
+        
         ret, frame = cap.read()
         if not ret:
             break
@@ -482,7 +562,20 @@ def mode_alignment():
         if key in (ord('s'), ord('S')) and present:
             break
         if key == ord('q'):
-            break
+            cap.release()
+            cv2.destroyWindow(win)
+            # Reset state on Workflow Dashboard
+            reset_workflow("Alignment cancelled.")
+            return
+    
+    # Update state on Workflow Dashboard
+    update_progress(
+        "Alignment",
+        33,
+        "Alignment completed. Ready for Calibration.",
+        running=False,
+        completed=True
+    )
 
     cap.release()
     cv2.destroyWindow(win)
@@ -491,6 +584,14 @@ def mode_alignment():
 # Calibration flow
 # ----------------------
 def mode_calibration(num_points=16):
+    clear_stop()
+    # Update state on Workflow Dashboard
+    update_progress(
+        "Calibration",
+        40,
+        "Calibration started. Please follow the targets..."
+    )
+
     print("Starting calibration...")
 
     # Only wait for Enter in standalone mode
@@ -569,6 +670,8 @@ def mode_calibration(num_points=16):
                 cv2.putText(canvas, ln, (x, y), font, 2.0*scale, (0,0,255), thickness, cv2.LINE_AA)
             cv2.imshow(win, canvas)
             if cv2.waitKey(1) & 0xFF == ord('q'):
+                # Reset state on Workflow Dashboard
+                reset_workflow("Calibration cancelled.")
                 return True
         return False
 
@@ -596,7 +699,13 @@ def mode_calibration(num_points=16):
         samples_taken = 0
         duration = DRAG_TRANSITION_SEC if drag_mode else TRANSITION_SEC
         peak_rr = 0.0
+
         while True:
+
+            #Triggers if Stop btn clicks
+            if should_stop():
+                return rec, True, float(TARGET_RADIUS), float(peak_rr)
+            
             elapsed = time.time() - t_start
             alpha = min(1.0, elapsed / duration)
             px = int(round(sx0 + alpha * (sx1 - sx0)))
@@ -635,10 +744,21 @@ def mode_calibration(num_points=16):
                 time.sleep(0.12)
                 return rec, False, float(rr_final), float(peak_rr)
             if cv2.waitKey(1) & 0xFF == ord('q'):
+                # Reset state on Workflow Dashboard
+                reset_workflow("Calibration cancelled.")
                 return rec, True, float(TARGET_RADIUS * 0.6), float(peak_rr)
 
     # Phase 1: grid sampling
     for i, (tx, ty) in enumerate(grid_targets):
+
+        #Triggers if Stop btn clicks
+        if should_stop():
+            cap.release()
+            show_system_cursor()
+            cv2.destroyAllWindows()
+            reset_workflow("Calibration stopped by user.")
+            return
+        
         if i == 0:
             cur_x, cur_y = center
         else:
@@ -646,7 +766,10 @@ def mode_calibration(num_points=16):
 
         rec, early_quit, end_radius, peak_radius = animate_transition_and_maybe_sample(cur_x, cur_y, tx, ty, record_while=False)
         if early_quit:
-            cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
+            cap.release(); show_system_cursor(); cv2.destroyAllWindows(); 
+            # Reset state on Workflow Dashboard
+            reset_workflow("Calibration cancelled.")      
+            return
 
         while True:
             ret, frame = cap.read()
@@ -674,7 +797,10 @@ def mode_calibration(num_points=16):
                             cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,0,255), 2)
                 cv2.imshow(win, canvas)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
-                    cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
+                    cap.release(); show_system_cursor(); cv2.destroyAllWindows(); 
+                    # Reset state on Workflow Dashboard
+                    reset_workflow("Calibration cancelled.") 
+                    return
                 time.sleep(0.05)
 
         samples = 0
@@ -705,7 +831,10 @@ def mode_calibration(num_points=16):
                     cv2.imshow(win, canvas)
                     key = cv2.waitKey(1) & 0xFF
                     if key == ord('q'):
-                        cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
+                        cap.release(); show_system_cursor(); cv2.destroyAllWindows(); 
+                        # Reset state on Workflow Dashboard
+                        reset_workflow("Calibration cancelled.") 
+                        return
                     rgb2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2RGB)
                     res2 = face_mesh.process(rgb2)
                     present2, brightness2, bbox2 = face_present_and_bright(res2, frame2)
@@ -738,7 +867,10 @@ def mode_calibration(num_points=16):
                         cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,0,255), 2)
             cv2.imshow(win, canvas)
             if cv2.waitKey(1) & 0xFF == ord('q'):
-                cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
+                cap.release(); show_system_cursor(); cv2.destroyAllWindows(); 
+                # Reset state on Workflow Dashboard
+                reset_workflow("Calibration cancelled.") 
+                return
 
     # Phase 2: drags + edge sampling
     phase2_instruction = "Drag Head with the pointer."
@@ -749,6 +881,15 @@ def mode_calibration(num_points=16):
         rec, early, end_radius, peak_radius = animate_transition_and_maybe_sample(center[0], center[1], etx, ety,
                                                                                    record_while=True, max_samples=SAMPLES_PER_DRAG,
                                                                                    instruction=None, drag_mode=True, edge_name=edge_name)
+        
+        #Triggers if Stop btn clicks
+        if should_stop():
+            cap.release()
+            show_system_cursor()
+            cv2.destroyAllWindows()
+            reset_workflow("Calibration stopped by user.")
+            return
+        
         if early:
             cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
 
@@ -781,7 +922,10 @@ def mode_calibration(num_points=16):
                     cv2.imshow(win, canvas)
                     key = cv2.waitKey(1) & 0xFF
                     if key == ord('q'):
-                        cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
+                        cap.release(); show_system_cursor(); cv2.destroyAllWindows(); 
+                        # Reset state on Workflow Dashboard
+                        reset_workflow("Calibration cancelled.") 
+                        return
                     rgb2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2RGB)
                     res2 = face_mesh.process(rgb2)
                     present2, brightness2, bbox2 = face_present_and_bright(res2, frame2)
@@ -814,7 +958,10 @@ def mode_calibration(num_points=16):
                         cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,0,255), 2)
             cv2.imshow(win, canvas)
             if cv2.waitKey(1) & 0xFF == ord('q'):
-                cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
+                cap.release(); show_system_cursor(); cv2.destroyAllWindows(); 
+                # Reset state on Workflow Dashboard
+                reset_workflow("Calibration cancelled.")
+                return
 
         return_duration = 0.6
         t_start = time.time()
@@ -836,7 +983,10 @@ def mode_calibration(num_points=16):
             if alpha >= 1.0:
                 break
             if cv2.waitKey(1) & 0xFF == ord('q'):
-                cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
+                cap.release(); show_system_cursor(); cv2.destroyAllWindows(); 
+                # Reset state on Workflow Dashboard
+                reset_workflow("Calibration cancelled.") 
+                return
             time.sleep(0.01)
 
     try:
@@ -853,13 +1003,25 @@ def mode_calibration(num_points=16):
 
     # Phase 3: corners sampling
     for i, (tx, ty) in enumerate(corners):
+
+        #Triggers if Stop btn clicks
+        if should_stop():
+            cap.release()
+            show_system_cursor()
+            cv2.destroyAllWindows()
+            reset_workflow("Calibration stopped by user.")
+            return
+
         if i == 0:
             start_x, start_y = center
         else:
             start_x, start_y = corners[i-1]
         rec, early_quit, end_radius, peak_radius = animate_transition_and_maybe_sample(start_x, start_y, tx, ty, record_while=False)
         if early_quit:
-            cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
+            cap.release(); show_system_cursor(); cv2.destroyAllWindows(); 
+            # Reset state on Workflow Dashboard
+            reset_workflow("Calibration cancelled.")  
+            return
 
         while True:
             ret, frame = cap.read()
@@ -887,7 +1049,10 @@ def mode_calibration(num_points=16):
                             cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,0,255), 2)
                 cv2.imshow(win, canvas)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
-                    cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
+                    cap.release(); show_system_cursor(); cv2.destroyAllWindows(); 
+                    # Reset state on Workflow Dashboard
+                    reset_workflow("Calibration cancelled.")  
+                    return
                 time.sleep(0.05)
 
         samples = 0
@@ -918,7 +1083,10 @@ def mode_calibration(num_points=16):
                     cv2.imshow(win, canvas)
                     key = cv2.waitKey(1) & 0xFF
                     if key == ord('q'):
-                        cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
+                        cap.release(); show_system_cursor(); cv2.destroyAllWindows(); 
+                        # Reset state on Workflow Dashboard
+                        reset_workflow("Calibration cancelled.") 
+                        return
                     rgb2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2RGB)
                     res2 = face_mesh.process(rgb2)
                     present2, brightness2, bbox2 = face_present_and_bright(res2, frame2)
@@ -951,7 +1119,19 @@ def mode_calibration(num_points=16):
                         cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,0,255), 2)
             cv2.imshow(win, canvas)
             if cv2.waitKey(1) & 0xFF == ord('q'):
-                cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
+                cap.release(); show_system_cursor(); cv2.destroyAllWindows(); 
+                # Reset state on Workflow Dashboard
+                reset_workflow("Calibration cancelled.")  
+                return
+ 
+    # Update state on Workflow Dashboard
+    update_progress(
+        "Calibration",
+        66,
+        "Calibration completed. Ready for Cursor Control.",
+        running=False,
+        completed=True
+    )
 
     cap.release()
     show_system_cursor()
@@ -996,6 +1176,14 @@ def mode_calibration(num_points=16):
 # Cursor control
 # ----------------------
 def mode_cursor_control():
+    clear_stop()
+    # Update state on Workflow Dashboard
+    update_progress(
+        "Cursor Control",
+        100,
+        "Cursor Control Active."
+    )
+
     LEFT_EYE_REFINED = [362, 386, 374, 263]
     RIGHT_EYE_REFINED = [33, 159, 145, 133]
     
@@ -1018,6 +1206,12 @@ def mode_cursor_control():
     print(f"Cursor Control Active using Node Profile: '{profile_label}'. Press 'CTRL+Q' anywhere to exit.")
 
     while True:
+        #Trggers if Stop btn clicks
+        if should_stop():
+            cap.release()
+            cv2.destroyAllWindows()
+            reset_workflow("Cursor Control stopped.")
+            return
         if keyboard.is_pressed('ctrl+q'):
             print("\nUniversal exit triggered. Closing...")
             break
@@ -1091,6 +1285,15 @@ def mode_cursor_control():
         cv2.imshow("Wink Debugging (Press CTRL+Q to stop)", frame)
         cv2.waitKey(1)
 
+    # Update state on Workflow Dashboard
+    update_progress(
+        "Idle",
+        0,
+        "Workflow finished.",
+        running=False,
+        completed=True
+    )
+    # reset_workflow("Workflow finished.")
     cap.release()
     cv2.destroyAllWindows()
 
@@ -1108,7 +1311,7 @@ if __name__ == "__main__":
     #       4 -> Profile Management (Load saved calibration profiles)
     #       q -> Quit
 
-    if len(sys.argv) > 1:
+    if WEB_MODE:
         mode = sys.argv[1]
 
         if mode == "1": mode_alignment()
@@ -1142,4 +1345,4 @@ if __name__ == "__main__":
                 break
             else:
                 print("Invalid Option. Choose 1, 2, 3, 4 or q.")
-        
+

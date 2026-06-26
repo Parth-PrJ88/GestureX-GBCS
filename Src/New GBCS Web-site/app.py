@@ -3,6 +3,7 @@ import subprocess
 import sys
 import os
 import json
+import GBCS_Model
 
 app = Flask(__name__)
 
@@ -62,15 +63,41 @@ def cursor():
     return jsonify({"status": msg})
 
 
+from pathlib import Path
+DATA_DIR = Path("data")
+DATA_DIR.mkdir(exist_ok=True)
+PROGRESS_FILE = DATA_DIR / "progress.json"
+
+@app.route("/progress")
+def progress():
+    try:
+        with open(PROGRESS_FILE, "r") as f:
+            return jsonify(json.load(f))
+        
+    except Exception:
+        return jsonify({
+            "phase":"Idle",
+            "progress":0,
+            "message":"Waiting...",
+            "running":False,
+            "completed":False
+        })
+
+
+# @app.route("/stop")
+# def stop():
+#     global process
+#     if process and process.poll() is None:
+#         process.terminate()
+#         process = None
+#         return jsonify({"status": "Stopped Process."})
+#     return jsonify({"status": "No Active Process Running."})
 @app.route("/stop")
 def stop():
-    global process
-    if process and process.poll() is None:
-        process.terminate()
-        process = None
-        return jsonify({"status": "Stopped Process."})
-    return jsonify({"status": "No Active Process Running."})
-
+    GBCS_Model.request_stop()
+    return jsonify({
+        "status": "Stopping current workflow..."
+    })
 
 if __name__ == "__main__":
     app.run(debug=True)

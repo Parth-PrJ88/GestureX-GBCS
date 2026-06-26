@@ -68,27 +68,48 @@ function updateWorkflow(phase, progress, message){
     const align = document.getElementById("step-align");
     const calibration = document.getElementById("step-calibration");
     const cursor = document.getElementById("step-cursor");
+    const line1 = document.getElementById("line-1");
+    const line2 = document.getElementById("line-2");
 
+    // Remove previous state
     align.classList.remove("active","completed");
     calibration.classList.remove("active","completed");
     cursor.classList.remove("active","completed");
+    line1.classList.remove("completed");
+    line2.classList.remove("completed");
+
+    // Reset timeline numbers
+    align.querySelector(".circle span").innerHTML = "1";
+    calibration.querySelector(".circle span").innerHTML = "2";
+    cursor.querySelector(".circle span").innerHTML = "3";
 
     if(progress===0){
         align.classList.add("active");
     }
     else if(progress >= 33 && progress < 66){
         align.classList.add("completed");
+        align.querySelector(".circle span").innerHTML = "✓";
+        line1.classList.add("completed");
         calibration.classList.add("active");
     }
     else if(progress >=66 && progress < 100){
         align.classList.add("completed");
+        align.querySelector(".circle span").innerHTML = "✓";
+        line1.classList.add("completed");
         calibration.classList.add("completed");
+        calibration.querySelector(".circle span").innerHTML = "✓";
+        line2.classList.add("completed");
         cursor.classList.add("active");
     }
     else if(progress >=100){
         align.classList.add("completed");
+        align.querySelector(".circle span").innerHTML = "✓";
+        line1.classList.add("completed");
         calibration.classList.add("completed");
+        calibration.querySelector(".circle span").innerHTML = "✓";
+        line2.classList.add("completed");
         cursor.classList.add("completed");
+        cursor.querySelector(".circle span").innerHTML = "✓";
     }
 }
 
@@ -160,7 +181,7 @@ async function stopWorkflow() {
         updateWorkflow(
             "Error",
             0,
-            "Unable to start workflow."
+            "Unable to stop workflow."
         );
     }
 }

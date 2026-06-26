@@ -1,0 +1,7 @@
+{
+    "phase": "Idle",
+    "progress": 0,
+    "message": "Alignment stopped by user.",
+    "running": false,
+    "completed": false
+}

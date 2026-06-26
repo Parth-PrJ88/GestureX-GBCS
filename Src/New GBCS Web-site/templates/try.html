@@ -76,12 +76,55 @@
                 <button class="btn" onclick="launch('/cursor')">Run</button>
             </div>
         </div>
+
+        <!-- Workflow-dashboard -->
+        <section class="workflow-dashboard">
+            <h1>Gesture<span style="color: aqua;">X</span> Workflow</h1>
+
+            <div class="current-phase-box">
+                <p class="phase-title">Current Phase</p>
+                <h3 id="currentPhase">IDLE</h3>
+            </div>
+
+            <div class="workflow-progress">
+                <div id="workflowBar"></div>
+            </div>
+
+            <div class="workflow-percent">
+                <span class="progress-title">Progress:</span>
+                <span id="workflowPercent">20%</span>
+            </div>
+
+            <div class="workflow-status">
+                <p id="workflowStatus">System Ready.<br>Click "Run" on Alignment to begin.</p>
+            </div>
+
+            <div class="workflow-timeline">
+                <div class="timeline-step active" id="step-align">
+                    <div class="circle"><span>1</span></div>
+                    <span id="timeline-step-name">Alignment</span>
+                </div>
+
+                <div class="timeline-line"></div>
+
+                <div class="timeline-step" id="step-calibration">
+                    <div class="circle"><span>2</span></div>
+                    <span id="timeline-step-name">Calibration</span>
+                </div>
+
+                <div class="timeline-line"></div>
+
+                <div class="timeline-step" id="step-cursor">
+                    <div class="circle"><span>3</span></div>
+                    <span id="timeline-step-name">Cursor</span>
+                </div>
+            </div>
+            
+        </section>        
+
             
         <!-- Status Line -->
         <p id="status" style="text-align:center;font-size:20px;margin-top:20px;"></p>
-        <!-- <div class="progress-container">
-            <div id="progressBar" class="progress-bar"></div>
-        </div> -->
         
         <script>
             function launch(route) {

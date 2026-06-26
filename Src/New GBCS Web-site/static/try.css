@@ -470,6 +470,167 @@ canvas {
 }
 
 
+/* ================= Workflow Dashboard ================= */
+
+.workflow-dashboard{
+    margin-top: 45px;
+    padding: 35px;
+    border-radius: 20px;
+    background: rgba(255,255,255,.05);
+    border: 3px solid rgba(74,207,238,.18);
+    backdrop-filter: blur(12px);
+}
+
+.workflow-dashboard h1{
+    text-align: center;
+    color: white;
+    margin-bottom: 25px;
+}
+
+/* Current Phase */
+.current-phase-box{
+    text-align: center;
+    /* margin-top: 38px; */
+    margin-bottom: 25px;
+}
+
+.phase-title{
+    color: #9bb8d3;
+    font-size: 16px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: -14px;
+}
+#currentPhase{
+    color: #4acfee;
+    font-size: 28px;
+    font-weight: 700;
+}
+
+/* Worlflow-Progress bar*/
+.workflow-progress{
+    justify-self: center;
+    width: 92%;
+    height: 12px;
+    background: #1f2b45;
+    border-radius: 30px;
+    overflow: hidden;
+}
+
+#workflowBar{
+    position: relative;
+    height: 100%;
+    width: 20%;
+    border-radius: 15px;
+    background: linear-gradient(90deg, #4acfee, #1e90ff, #4acfee);
+    transition: 0.6s;
+    overflow: hidden;
+}
+#workflowBar::after{
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -30%;
+    width: 30%;
+    height: 100%;
+    background: rgba(255,255,255,.35);
+    transform: skewX(-25deg);
+    animation: shine 2s infinite;
+}
+@keyframes shine{
+    100%{
+        left:130%;
+    }
+}
+
+.workflow-percent{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+}
+.progress-title{
+    color: #9bb8d3;
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+#workflowPercent{
+    color: #4acfee;
+    font-size: 20px;
+    font-weight: bold;
+    margin-top: -2px;
+}
+
+.workflow-status{
+    margin-top: 25px;
+    text-align: center;
+    color: white;
+    font-size: 16px;
+    min-height: 25px;
+    line-height: 1.4;
+}
+
+/* Timeline of Workflow */
+.workflow-timeline{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 40px;
+}
+
+.timeline-step{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #888;
+    transition: 0.4s;
+}
+
+.timeline-step .circle{
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2.6px solid #555;
+    background: #111;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.timeline-step #timeline-step-name{
+    padding-top: 8px;
+}
+
+.timeline-step.active{
+    color: #4acfee;
+}
+.timeline-step.active .circle{
+    border-color: #4acfee;
+    box-shadow: 0 0 20px rgba(74,207,238,.5);
+}
+
+.timeline-step.completed{
+    color: #4CAF50;
+}
+.timeline-step.completed .circle{
+    background: #4CAF50;
+    border-color: #4CAF50;
+    color: white;
+}
+
+.timeline-line{
+    flex: 1;
+    height: 3.5px;
+    background: #333;
+    margin: 0 12px;
+    margin-top: -24px;
+}
+
+
 /* ================= FOOTER ================= */
 
 footer {

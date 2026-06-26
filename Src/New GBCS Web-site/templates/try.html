@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>GestureX - Try Module</title>
+    <!-- Socket.IO -->
+    <!-- <script defer src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script> -->
+    <!-- Font Awesome CSS - for app icons -->
+    <script src="https://kit.fontawesome.com/fe186eb2b8.js" crossorigin="anonymous"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/try.css">
+</head>
+
+<body>
+
+    <!-- Floating Background Icons -->
+    
+    <div class="floating-bg" id="floating-bg"></div>
+
+    <!-- Header -->
+    <div class="header">
+        <!-- Logo -->
+        <div class="logo">
+            Gesture<span>X</span>
+        </div>
+        <!-- Back to Home -->
+        <a href="/"><b> ← </b>Back to Home</a>
+    </div>
+
+    <!-- Screen Loader -->
+    <!-- <div id="loader">
+        <div class="loader-card">
+            <h1>
+                Gesture<span>X</span>
+            </h1>
+            <p id="loadingText">
+                Initializing GestureX AI...
+            </p>
+            <div class="spinner"></div>
+            <div class="progress">
+                <div class="progress-bar"></div>
+            </div>
+            <div id="steps">
+                <div>✔ Loading Computer Vision</div>
+                <div>✔ Initializing Camera</div>
+                <div>✔ Preparing FaceMesh</div>
+                <div>✔ Starting Tracking Engine</div>
+            </div>
+        </div>
+    </div> -->
+
+    <!-- Container -->
+    <div class="container">
+
+        <!-- Phase Selection -->
+        <div class="phases">
+            <div class="phase-card" id="alignmentCard">
+                <h1><!--🎯--><span class="card-title">Alignment</span></h1>
+                <p>Position your face properly for optimal tracking</p>
+                <!-- <button class="btn" onclick="startPhase('alignment')">Start Alignment</button> -->
+                <button class="btn" onclick="launch('/alignment')">Run</button>            
+            </div>
+
+            <div class="phase-card" id="calibrationCard">
+                <h1><!--📍--><span class="card-title">Calibration</span></h1>
+                <p>Calibrate the system with your gaze patterns</p>
+                <!-- <a href="/calibration"><button class="btn" id="calibrationBtn" onclick="startPhase('calibration')" disabled>Start Calibration</button></a> -->
+                <button class="btn" onclick="launch('/calibration')">Run</button>
+            </div>
+
+            <div class="phase-card" id="cursorCard">
+                <h1><!--🖱️--><span class="card-title">Cursor Control</span></h1>
+                <p>Control the cursor using your eyes</p>
+                <!-- <a href="/cursor"><button class="btn" id="cursorBtn" onclick="startPhase('cursor_control')" disabled>Start Cursor</button></a> -->
+                <button class="btn" onclick="launch('/cursor')">Run</button>
+            </div>
+        </div>
+            
+        <!-- Status Line -->
+        <p id="status" style="text-align:center;font-size:20px;margin-top:20px;"></p>
+        <!-- <div class="progress-container">
+            <div id="progressBar" class="progress-bar"></div>
+        </div> -->
+        
+        <script>
+            function launch(route) {
+                const statusEl = document.getElementById('status');
+                statusEl.innerText = 'Loading... (initializing camera & AI models)';
+                statusEl.style.color = '#667eea';
+                    
+                fetch(route)
+                .then(res => res.json())
+                .then(data => {
+                    statusEl.innerText = data.status;
+                    statusEl.style.color = 'green';
+                });
+            }
+        </script>
+
+        <!-- Stop Card -->
+        <div class="card-stop">
+            <h2><span class="card-title">Stop Process</span></h2>
+            <button class="btn-stop" onclick="launch('/stop')">Stop</button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        Gesture<span style="color: #4acfee;">X</span> Team | 2024-26
+    </footer>
+
+    <script src="/static/script.js"></script>
+
+</body>
+</html>
+

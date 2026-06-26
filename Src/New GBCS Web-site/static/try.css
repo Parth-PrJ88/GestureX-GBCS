@@ -1,0 +1,483 @@
+* {
+    font-family: Monsterrat, sans-serif;
+}
+
+html {
+    scroll-behavior: smooth;    /* Smooth scrolling */
+    scroll-padding: 6rem;       /* Space from top when scrolling to a section */
+}
+
+body {
+    font-family: 'Calibri', Monsterrat, sans-serif;
+    background: black;
+    margin: 0;
+}
+
+
+/* ================= Screen Loader ================= */
+
+/* Fullscreen */
+#loader{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:linear-gradient(135deg,black,rgba(17, 133, 250, 0.18),black);
+    z-index:99999;
+}
+
+/* Glass Card */
+.loader-card{
+    width:420px;
+    padding:45px;
+    text-align:center;
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.2);
+    backdrop-filter:blur(18px);
+    border-radius:20px;
+    box-shadow:0 0 40px rgba(0,0,0,.4);
+    animation:popup .7s ease;
+}
+.loader-card h1{
+    color:white;
+    font-size:46px;
+    margin-bottom:15px;
+}
+.loader-card span{
+    color:#4acfee;
+}
+#loadingText{
+    color:#d6f3ff;
+    margin-bottom:25px;
+    font-size:16px;
+}
+
+/* Spinner */
+.spinner{
+    width:75px;
+    height:75px;
+    margin:auto;
+    border:12px solid rgba(255, 255, 255, 0.12);
+    border-top:8px solid #4acfee;
+    border-radius:50%;
+    animation:spin 1s linear infinite;
+}
+
+/* Progress */
+.progress{
+    width:100%;
+    height:10px;
+    background:#243b55;
+    margin-top:35px;
+    border-radius:30px;
+    overflow:hidden;
+}
+
+.progress-bar{
+    width:0;
+    height:100%;
+    background:rgb(17, 133, 250);
+    animation:loading 8s linear forwards;
+}
+
+/* Steps */
+#steps{
+    margin-top:30px;
+    text-align:left;
+    color:white;
+    line-height:34px;
+    font-size:15px;
+    opacity:.85;
+}
+
+@keyframes spin{
+    100%{
+        transform:rotate(360deg);
+    }
+}
+@keyframes loading{
+    0%{
+        width:0;
+    }
+    100%{
+        width:100%;
+    }
+}
+@keyframes popup{
+    from{
+        transform:scale(.8);
+        opacity:0;
+    }
+    to{
+        transform:scale(1);
+        opacity:1;
+    }
+}
+
+/* ================= Floating Background ================= */
+
+/* Floating background container */
+.floating-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+/* Icons */
+.floating-bg .icon {
+    position: absolute;
+    color: rgba(74, 207, 238, 0.28);
+    filter: drop-shadow(0 0 10px rgba(74, 207, 238, 0.35));
+    animation: floatUp linear infinite;
+    will-change: transform;
+}
+
+@keyframes floatUp {
+    from {
+        transform: translateY(120vh) rotate(0deg);
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    to {
+        transform: translateY(-120vh) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+
+/* ================= Custom Scroll Bar ================= */
+
+::-webkit-scrollbar {
+    width: 0.65rem;
+    height: 0.65rem;
+}
+
+::-webkit-scrollbar-thumb {
+    border-radius: 0.68rem;
+    background: linear-gradient(135deg, #4acfee, #1e90ff, #1dc6ec);
+    background-size: 300%;
+    transition: all 0.5s ease-in-out;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #4acfee, #1e90ff, #1dc6ec);
+    background-size: 200%;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+
+/* ================= HEADER ================= */
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: auto 30px;
+    margin-top: 30px;
+    margin-bottom: 30px;
+    /* Border Line under Header */
+    border-bottom: 3px solid aqua;
+    padding-bottom: 20px;
+}
+
+/* Logo */
+.logo {
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: white;
+    letter-spacing: 1px;
+}
+
+.logo span {
+    color: #4acfee;
+}
+
+.logo:hover {
+    transform: scale(1.05);
+    transition: 0.3s ease;
+    cursor: pointer;
+}
+
+/* Back to Home */
+.header a {
+    padding: 8px 16px;
+    text-decoration: none;
+    color: white;
+    border-radius: 5px;
+    border: rgb(0, 123, 246) 2px solid;
+    background: linear-gradient(135deg, #4acfee, #1e90ff);
+    transition: 0.3s ease;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.header a:hover {
+    transform: scale(1.05);
+    border: #1e90ff 2px solid;
+    background: linear-gradient(135deg, #1e90ff, #4acfee);
+    transition: 0.3s ease;
+    box-shadow: 0 10px 20px rgba(30, 144, 255, 0.3);
+}
+
+.header b {
+    font-weight: 900;
+}
+
+
+/* ================= Container ================= */
+
+.container {
+    width: 88%;
+    max-width: 1285px;
+    margin: 30px auto;
+    padding: 30px;
+    /* min-height: 100vh; */
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(5px);
+    border-radius: 20px;
+    position: relative;
+    z-index: 2;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 880px) or (max-width: 1040px) {
+    .container {
+        width: 76%;
+    }
+}
+
+    /* Gradient Border */
+.container::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 3px;   /* Border thickness */
+    background: conic-gradient(from 135deg, #4acfee, #1e90ff, #00ffcc);
+    border-radius: inherit;
+    /* Shows only border */
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: xor;
+    mask-composite: exclude;
+    z-index: -1;
+}
+
+/* Phases Container */
+.phases {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.phase-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 3px solid #e0e0e0;
+    border-radius: 15px;
+    padding: 25px;
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+.phase-card:hover {
+    border-color: #1e90ff;
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+    transform: translateY(-5px);
+}
+
+.phase-card .card-title, 
+.card-stop .card-title {
+    background-image: linear-gradient(-135deg, rgb(48, 151, 255), rgb(82, 167, 251), rgb(128, 191, 254), #68dff9, #60d4ee, #4acfee, #1dc6ec);
+    background-size: 250%;
+    color: transparent;
+    background-clip: text;
+    animation: animated-gradient 3s ease infinite alternate-reverse;
+    margin-top: 0;
+}
+@keyframes animated-gradient {
+    0%{
+        rotate: 10%;
+        background-position: 0%;
+    } 
+    50%{
+        rotate: 50%;
+        background-position: 50%;
+    }  
+    100%{
+        rotate: 90%;
+        background-position: 100%;
+    }
+}
+
+.phase-card p {
+    color: white;
+    margin-bottom: 20px;
+}
+
+.btn {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 8px;
+    background: #667eea;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.btn:hover:not(:disabled) {
+    background: #5056ff;
+    transform: scale(1.05);
+    transition: all 0.4s ease;
+}
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+
+/* ================= Camera & Canvas ================= */
+
+.canvas-container {
+    position: relative;
+    width: 100%;
+    max-width: 800px;
+    margin: 30px auto;
+    background: transparent;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.camera-feed {
+    position: relative;
+    width: 100%;
+    background: transparent;
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.camera-feed img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.status-panel {
+    background: transparent;
+    border-left: 4px solid #667eea;
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 8px;
+}
+
+.status-panel h3 {
+    margin-top: 0;
+    color: #667eea;
+}
+
+.status-text {
+    color: #333;
+    margin: 10px 0;
+    font-size: 14px;
+}
+
+.status-text.info {
+    color: #667eea;
+}
+
+.status-text.success {
+    color: #27ae60;
+}
+
+.status-text.error {
+    color: #e74c3c;
+}
+
+.controls {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    margin: 10px 0;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.instructions {
+    background: #e8f4f8;
+    border-left: 4px solid #3498db;
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 5px;
+    color: #2c3e50;
+}
+
+
+/* ================= Stop Card ================= */
+
+.card-stop {
+    text-align: center;
+    color: white;
+}
+.btn-stop {
+    padding: 12px 30px;
+    background: rgba(231, 76, 60, 0.1);
+    border: 3px solid #ff2c15;
+    border-radius: 15px;
+    color: #ff2c15;
+    font-size: 18px;
+    font-weight: 700;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.btn-stop:hover {
+    color: white;
+    background: #ff2c15;
+    transform: scale(1.05);
+    transition: all 0.4s ease;
+}
+
+
+/* ================= FOOTER ================= */
+
+footer {
+    margin-top: 6.8rem;
+    padding: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+    background: black;
+    color: white;
+}
+

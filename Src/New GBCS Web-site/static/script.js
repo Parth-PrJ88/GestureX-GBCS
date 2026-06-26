@@ -174,3 +174,4 @@ var BoxSlider = new Swiper('.slider', {
 //     },600);
 //   },7000);
 // }
+

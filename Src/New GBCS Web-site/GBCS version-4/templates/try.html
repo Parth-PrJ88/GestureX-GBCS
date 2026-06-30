@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>GestureX - Try Module</title>
+    <!-- Socket.IO -->
+    <!-- <script defer src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script> -->
+    <!-- Font Awesome CSS - for app icons -->
+    <script src="https://kit.fontawesome.com/fe186eb2b8.js" crossorigin="anonymous"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/try.css">
+</head>
+
+<body>
+
+    <!-- Floating Background Icons -->
+    
+    <div class="floating-bg" id="floating-bg"></div>
+
+    <!-- Header -->
+    <div class="header">
+        <!-- Logo -->
+        <div class="logo">
+            Gesture<span>X</span>
+        </div>
+        <!-- Back to Home -->
+        <a href="/"><b> ← </b>Back to Home</a>
+    </div>
+
+
+    <!-- Container -->
+    <div class="container">
+
+        <!-- Phase-Selection Section -->
+        <div class="phases">
+
+            <div class="phase-card" id="alignmentCard">
+                <h1><!--🎯--><span class="card-title">Alignment</span></h1>
+                <p>Position your face properly for optimal tracking</p>
+                <!-- <button class="btn" onclick="startPhase('alignment')">Start Alignment</button> -->
+                <button id="alignmentBtn" class="btn" onclick="launch('/alignment', this)">▶ Run</button>            
+            </div>
+
+            <div class="phase-card" id="calibrationCard">
+                <h1><!--📍--><span class="card-title">Calibration</span></h1>
+                <p>Calibrate the system with your gaze patterns</p>
+                <!-- <a href="/calibration"><button class="btn" id="calibrationBtn" onclick="startPhase('calibration')" disabled>Start Calibration</button></a> -->
+                <button id="calibrationBtn" class="btn" onclick="launch('/calibration', this)">▶ Run</button>
+            </div>
+
+            <div class="phase-card" id="cursorCard">
+                <h1><!--🖱️--><span class="card-title">Cursor Control</span></h1>
+                <p>Control the cursor using your eyes</p>
+                <!-- <a href="/cursor"><button class="btn" id="cursorBtn" onclick="startPhase('cursor_control')" disabled>Start Cursor</button></a> -->
+                <button id="cursorBtn" class="btn" onclick="launch('/cursor', this)">▶ Run</button>
+            </div>
+
+        </div>
+
+        <!-- Dashboard Section -->
+        <div class="dashboard-section">
+
+            <!-- Profile Dashboard -->
+            <section class="profile-dashboard">
+                <h1 class="profile-title">Profile Dashboard</h1>
+
+                <!-- Active Profile -->
+                <div class="profile-active-card">
+                    <p class="profile-label">Active Profile</p>
+                    <div class="active-profile-badge" id="activeProfileBadge">
+                        ⚪ No Calibration
+                    </div>
+                </div>
+
+                <!-- Save Profile -->
+                <div class="save-profile-card">
+                    <p class="profile-label">Save Calibration</p>
+                    <input type="text" id="profileName" placeholder="Enter Profile Name...">
+                    <button class="profile-btn" id="saveProfileBtn" onclick="saveProfile()">💾 Save Profile</button>
+                </div>
+
+                <!-- Saved Profiles -->
+                <div class="saved-profiles-card">
+                    <p class="profile-heading">Saved Profiles</p>
+                    <div id="profileList" class="profile-list">
+                        <!-- Profile Item -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Workflow-dashboard -->
+            <section class="workflow-dashboard">
+                <h1>Gesture<span id="spanX">X</span> Workflow</h1>
+
+                <div class="current-phase-box">
+                    <p class="phase-title">Current Phase</p>
+                    <h3 id="currentPhase">IDLE</h3>
+                </div>
+
+                <div class="workflow-progress">
+                    <div id="workflowBar"></div>
+                </div>
+
+                <div class="workflow-percent">
+                    <span class="progress-title">Progress:</span>
+                    <span id="workflowPercent">0%</span>
+                </div>
+
+                <div class="workflow-status">
+                    <p id="workflowStatus">System Ready.<br>Click "Run" on Alignment to begin.</p>
+                </div>
+
+                <div class="workflow-timeline">
+                    <div class="timeline-step active" id="step-align">
+                        <div class="circle"><span>1</span></div>
+                        <span class="timeline-step-name">Alignment</span>
+                    </div>
+
+                    <div class="timeline-line" id="line-1"></div>
+
+                    <div class="timeline-step" id="step-calibration">
+                        <div class="circle"><span>2</span></div>
+                        <span class="timeline-step-name">Calibration</span>
+                    </div>
+
+                    <div class="timeline-line" id="line-2"></div>
+
+                    <div class="timeline-step" id="step-cursor">
+                        <div class="circle"><span>3</span></div>
+                        <span class="timeline-step-name">Cursor</span>
+                    </div>
+                </div>
+            </section>
+
+        </div>   
+
+        <!-- Stop Card -->
+        <div class="process-control-card">
+            <h2><span class="card-title">Control Process</span></h2>
+            <div class="control-card">
+                <button class="btn-stop" onclick="stopWorkflow()">Stop</button>
+                <button class="reset-btn" id="resetBtn">Reset</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Footer -->
+    <footer>
+        Gesture<span style="color: #4acfee;">X</span> Team | 2024-26
+    </footer>
+
+    <script src="/static/try.js"></script>
+    <!-- <script src="{{ url_for('static', filename='try.js') }}"></script> -->
+
+</body>
+</html>
+

@@ -444,6 +444,15 @@ def get_profiles():
 # ----------------------------------------------------------------------------------------
 
 def load_profile(filename):
+
+    # Workflow Validation
+    if PROGRESS_FILE.exists():
+        with open(PROGRESS_FILE, "r") as f:
+            workflow = json.load(f)
+        # Alignment must be completed first
+        if workflow.get("progress", 0) < 33:
+            return False, "Please Complete Alignment before loading a Profile."
+    
     global ACTIVE_PROFILE_NAME
 
     profile_path = PROFILES_DIR / f"{filename}.json"
@@ -459,9 +468,15 @@ def load_profile(filename):
         with open(OUT_MAP, "w") as f:
             json.dump(profile_data, f, indent=4)
 
-        ACTIVE_PROFILE_NAME = profile_data.get(
-            "profile_name",
-            filename
+        ACTIVE_PROFILE_NAME = profile_data.get("profile_name", filename)
+
+        # Update workflow state after loading a Saved Calibration & Move workflow directly to Cursor stage
+        update_progress(
+            phase = "Calibration",
+            progress = 66,
+            message = "Profile loaded Successfully. Ready for Cursor Control.",
+            running = False,
+            completed = False
         )
 
         return True, ACTIVE_PROFILE_NAME

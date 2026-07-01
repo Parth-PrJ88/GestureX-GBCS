@@ -563,6 +563,14 @@ async function saveProfile(){
 /* --------------------- Load Profile --------------------- */
 
 async function loadProfile(filename){
+
+    // Check complition of Alignmnet Phase before loading a profile
+    const currentPhase = document.getElementById("currentPhase").innerText;
+    if(currentPhase === "IDLE"){
+        alert("Please complete Alignment before loading a Profile.");
+        return;
+    }
+
     const response = await fetch("/profile/load",{
         method:"POST",
         headers: {"Content-Type":"application/json"}, body:JSON.stringify({
@@ -575,6 +583,7 @@ async function loadProfile(filename){
     if(data.success){
         // Refresh list & Fetch Active Profile
         await refreshProfileDashboard();
+        await fetchWorkflow();
     }else{
         alert(data.message);
     }

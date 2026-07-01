@@ -542,7 +542,12 @@ async function saveProfile(){
     const profileName = input.value.trim();
 
     if(profileName === ""){
-        alert("Enter Profile Name");
+        // alert("Enter Profile Name");
+        showToast(
+            "Profile Name Required",
+            "Please enter a profile name before saving.",
+            "warning"
+        );
         return;
     }
 
@@ -555,7 +560,21 @@ async function saveProfile(){
 
     const result = await response.json();
 
-    alert(result.message);
+    // alert(result.message);
+    if(result.success){
+        showToast(
+            "Profile Saved",
+            `"${profileName}" has been saved successfully.`,
+            "success"
+        );
+    }else{
+        showToast(
+            "Save Failed",
+            result.message,
+            "error"
+        );
+    }
+
     input.value="";
     await refreshProfileDashboard();
 }
@@ -567,7 +586,12 @@ async function loadProfile(filename){
     // Check complition of Alignmnet Phase before loading a profile
     const currentPhase = document.getElementById("currentPhase").innerText;
     if(currentPhase === "IDLE"){
-        alert("Please complete Alignment before loading a Profile.");
+        // alert("Please complete Alignment before loading a Profile.");
+        showToast(
+            "Alignment Required",
+            "Please complete Alignment before loading a Profile.",
+            "warning"
+        );
         return;
     }
 
@@ -581,11 +605,21 @@ async function loadProfile(filename){
     const data = await response.json();
 
     if(data.success){
+        showToast(
+            "Profile Loaded",
+            `Profile: "${data.message}" is ready for Cursor Control.`,
+            "success"
+        );
         // Refresh list & Fetch Active Profile
         await refreshProfileDashboard();
         await fetchWorkflow();
     }else{
-        alert(data.message);
+        // alert(data.message);
+        showToast(
+            "Alignment Required",
+            data.message,
+            "warning"
+        );
     }
 }
 
@@ -606,9 +640,112 @@ async function deleteProfile(filename){
     });
 
     const result = await response.json();
-    alert(result.message);
+
+    // alert(result.message);
+    if(result.success){
+        showToast(
+            "Profile Deleted",
+            `Profile: "${filename}" removed successfully.`,
+            "success"
+        );
+    }else{
+        showToast(
+            "Profile Deletion Failed",
+            result.message,
+            "error"
+        );
+    }
+
     await refreshProfileDashboard();
 }
 
 // Refresh Profile Dashboard
 refreshProfileDashboard();
+
+
+/* ================== Toast Alert Notification =================== */
+
+function showToast(title, message, type = "info") {
+    const container = document.getElementById("toastContainer");
+    const toast = document.createElement("div");
+
+    toast.className = `toast toast-${type}`;
+
+    const icons = {
+        success: "✔",
+        warning: "⚠",
+        error: "✖",
+        // info: "💡 🚀 🔷 ⚡ 🤖"
+        info: "🚀"
+    };
+
+    toast.innerHTML = `
+        <span class="toast-close">&times;</span>
+        <div class="toast-header">
+            <div class="toast-icon ${type}">
+                ${icons[type]}
+            </div>
+            <div>
+                <div class="toast-title">${title}</div>
+                <div class="toast-message">${message}</div>
+            </div>
+        </div>
+        <div class="toast-progress"></div>
+    `;
+
+    // Append toast to container in order
+    container.appendChild(toast);
+    
+    toast.querySelector(".toast-close").addEventListener("click",()=>{
+        toast.classList.add("hide");
+        setTimeout(()=>{
+            toast.remove();
+        },400);
+    });
+
+    const DURATION = 3000;
+    let remaining = DURATION;
+    let startTime = Date.now();
+    let timeoutId;
+
+    /* Close Toast */
+    function closeToast(){
+        if(toast.classList.contains("hide"))
+            return;
+        clearTimeout(timeoutId);
+        toast.classList.add("hide");
+        setTimeout(() => {
+            toast.remove();
+        },400);
+    }
+
+    /* Start Timer */
+    function startTimer(){
+        startTime = Date.now();
+        timeoutId = setTimeout(closeToast, remaining);
+    }
+
+    /* Initial Start */
+    startTimer();
+    /* Pause */
+    toast.addEventListener("mouseenter",()=>{
+        clearTimeout(timeoutId);
+        remaining -= Date.now() - startTime;
+        remaining = Math.max(remaining,0);
+        toast.classList.add("paused");
+    });
+    /* Resume */
+    toast.addEventListener("mouseleave",()=>{
+        toast.classList.remove("paused");
+        startTimer();
+    });
+
+    /* Close Button */
+    toast.querySelector(".toast-close").addEventListener("click", closeToast);
+}
+
+showToast(
+    "Gesture<span id='char-X'>X</span>",
+    "Welcome Sir! GestureX is Ready to Use.",
+    "info"
+);

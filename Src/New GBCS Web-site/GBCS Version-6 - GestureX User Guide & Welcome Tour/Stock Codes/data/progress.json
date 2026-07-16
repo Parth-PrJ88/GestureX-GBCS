@@ -1,7 +1,0 @@
-{
-    "phase": "Idle",
-    "progress": 0,
-    "message": "System Ready. Click \"Run\" on Alignment to begin.",
-    "running": false,
-    "completed": false
-}

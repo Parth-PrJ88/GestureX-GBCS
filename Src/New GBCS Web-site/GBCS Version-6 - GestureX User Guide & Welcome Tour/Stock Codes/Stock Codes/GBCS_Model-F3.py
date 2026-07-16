@@ -1497,6 +1497,9 @@ def mode_cursor_control():
             #Trggers if Stop btn clicks
             if should_stop():
                 stopped_by_user = True
+                cap.release()
+                cv2.destroyAllWindows()
+                # reset_workflow("Cursor Control stopped.")
                 cursor_stopped()
                 return
             if keyboard.is_pressed('ctrl+q'):
@@ -1686,7 +1689,6 @@ def mode_cursor_control():
             pyautogui.mouseUp(button='left')
 
         preview.stop()
-        cap.release()
 
         # Update state on Workflow Dashboard
         if not stopped_by_user and not failsafe_active:
@@ -1698,6 +1700,7 @@ def mode_cursor_control():
                 completed=True
             )
         # reset_workflow("Workflow finished.")
+        cap.release()
 
 # ----------------------
 # Main
@@ -1749,3 +1752,4 @@ if __name__ == "__main__":
                 break
             else:
                 print("Invalid. Choose 1, 2, 3, 4 or q.")
+

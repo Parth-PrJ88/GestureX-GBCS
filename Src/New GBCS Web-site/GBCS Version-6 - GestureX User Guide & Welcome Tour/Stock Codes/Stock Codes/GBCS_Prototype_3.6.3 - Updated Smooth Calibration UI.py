@@ -8,8 +8,6 @@ import sys, time, math, ctypes
 import threading
 from pathlib import Path
 import json
-import os
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 import cv2
 import mediapipe as mp
 import numpy as np
@@ -18,91 +16,10 @@ import csv
 from scipy.stats import pearsonr
 import keyboard
 
-# True when launched from Flask
-# -------------------------------------------
-WEB_MODE = len(sys.argv) > 1
-
 try:
     import pygetwindow as gw
 except Exception:
     gw = None
-
-
-# --------------------------------------------
-# Write JSON file for State Management
-# --------------------------------------------
-
-DATA_DIR = Path("data")
-PROGRESS_FILE = DATA_DIR / "progress.json"
-STOP_FILE = DATA_DIR / "stop.json"
-
-def update_progress(
-    phase,
-    progress,
-    message,
-    running=True,
-    completed=False
-):
-    with open(PROGRESS_FILE, "w") as f:
-        json.dump(
-            {
-                "phase": phase,
-                "progress": progress,
-                "message": message,
-                "running": running,
-                "completed": completed
-            },
-            f,
-            indent=4
-        )
-
-# Reset Workflow
-# --------------------------------------------
-def reset_workflow(message="Workflow cancelled."):
-    update_progress(
-        "Idle",
-        0,
-        message,
-        running=False,
-        completed=False
-    )
-
-def cursor_stopped():
-    update_progress(
-        "Calibration",
-        66,
-        "Cursor Control stopped by user. Ready to restart.",
-        running=False,
-    )
-
-def failsafe_triggered():
-    update_progress(
-        "Calibration",
-        66,
-        "Failsafe Triggered. Please Recalibrate Before Starting Cursor Control again to Avoid this, because the Current Calibration may Not Accurate.",
-        running=False,
-        completed=False
-    )
-
-# Workflow Stop Control
-# --------------------------------------------
-STOP_FILE = Path("data/stop.json")
-
-def request_stop():
-    with open(STOP_FILE, "w") as f:
-        json.dump({"stop": True}, f)
-
-def clear_stop():
-    with open(STOP_FILE, "w") as f:
-        json.dump({"stop": False}, f)
-
-def should_stop():
-    try:
-        with open(STOP_FILE, "r") as f:
-            return json.load(f).get("stop", False)
-    except:
-        return False
-
 
 # ----------------------
 # Configuration & paths
@@ -302,10 +219,9 @@ def show_system_cursor():
     if sys.platform.startswith("win"):
         ctypes.windll.user32.ShowCursor(True)
 
-# ------------------------------------------------------------------
-# Mapping & Profile-Management helpers
-# ------------------------------------------------------------------
-
+# ----------------------
+# Mapping & Profile helpers
+# ----------------------
 def build_design_matrix(eye_xy):
     x = eye_xy[:,0]; y = eye_xy[:,1]
     return np.column_stack([x, y, x*y, x**2, y**2, np.ones_like(x)])
@@ -335,11 +251,18 @@ def save_mapping(wx, wy, invert_x=False, invert_y=False, profile_name="default")
         "invert_y": bool(invert_y)
     }
     
-    # Save to master profile cache for backwards compatibility
     with open(OUT_MAP, "w") as f:
         json.dump(mapping, f, indent=4)
-
-    print("\n[SUCCESS] Calibration saved to active runtime.")
+        
+    safe_filename = "".join([c for c in profile_name if c.isalpha() or c.isdigit() or c in (' ', '_', '-')]).rstrip()
+    safe_filename = safe_filename.replace(" ", "_").lower()
+    if not safe_filename:
+        safe_filename = "unnamed_profile"
+        
+    profile_path = PROFILES_DIR / f"{safe_filename}.json"
+    with open(profile_path, "w") as f:
+        json.dump(mapping, f, indent=4)
+    print(f"\n[SUCCESS] Calibration saved successfully under node: '{profile_name}'")
 
 def load_mapping(profile_filename=None):
     if profile_filename:
@@ -351,17 +274,12 @@ def load_mapping(profile_filename=None):
         return json.load(open(OUT_MAP))
     return None
 
-
-# Profile-Management For CMD
-# ================================================================================================================
-
 def interactive_profile_menu():
     global ACTIVE_PROFILE_NAME
     while True:
         print("\n=== CALIBRATION NODE PROFILE MANAGEMENT ===")
         profiles = list(PROFILES_DIR.glob("*.json"))
         
-        # Display fallback Default mapping tracking status
         current_loaded = "None"
         if OUT_MAP.exists():
             try:
@@ -399,7 +317,6 @@ def interactive_profile_menu():
             if 0 <= idx < len(profiles):
                 selected_profile = profiles[idx]
                 try:
-                    # Sync target selection directly to active runtime cache
                     with open(selected_profile, "r") as sf:
                         profile_data = json.load(sf)
                     with open(OUT_MAP, "w") as df:
@@ -414,164 +331,6 @@ def interactive_profile_menu():
                 print("Index out of selection range.")
         else:
             print("Invalid Option selection.")
-
-
-# Profile-Management For Web
-# ================================================================================================================
-
-# Get All Saved Profiles
-# ----------------------------------------------------------------------------------------
-
-def get_profiles():
-    profiles = []
-
-    if not PROFILES_DIR.exists():
-        return profiles
-
-    for profile_file in PROFILES_DIR.glob("*.json"):
-        try:
-            with open(profile_file, "r") as f:
-                data = json.load(f)
-
-            profiles.append({
-                "name": data.get("profile_name", profile_file.stem),
-                "timestamp": data.get("timestamp", ""),
-                "filename": profile_file.stem
-            })
-
-        except Exception:
-            print(f"Skipping invalid profile: {profile_file.name}")
-
-    # Sort newest first
-    profiles.sort(
-        key=lambda x: x["timestamp"],
-        reverse=True
-    )
-    return profiles
-
-# Load Profile
-# ----------------------------------------------------------------------------------------
-
-def load_profile(filename):
-
-    # Workflow Validation
-    if PROGRESS_FILE.exists():
-        with open(PROGRESS_FILE, "r") as f:
-            workflow = json.load(f)
-        # Alignment must be completed first
-        if workflow.get("progress", 0) < 33:
-            return False, "Please Complete Alignment before loading a Profile."
-    
-    global ACTIVE_PROFILE_NAME
-
-    profile_path = PROFILES_DIR / f"{filename}.json"
-
-    if not profile_path.exists():
-        return False, "Profile not found."
-
-    try:
-        with open(profile_path, "r") as f:
-            profile_data = json.load(f)
-
-        # Make this the active runtime profile
-        with open(OUT_MAP, "w") as f:
-            json.dump(profile_data, f, indent=4)
-
-        ACTIVE_PROFILE_NAME = profile_data.get("profile_name", filename)
-
-        # Update workflow state after loading a Saved Calibration & Move workflow directly to Cursor stage
-        update_progress(
-            phase = "Calibration",
-            progress = 66,
-            message = "Profile loaded Successfully. Ready for Cursor Control.",
-            running = False,
-            completed = False
-        )
-
-        return True, ACTIVE_PROFILE_NAME
-
-    except Exception as e:
-        return False, str(e)
-
-# Save Profile
-# ----------------------------------------------------------------------------------------
-
-def save_current_profile(profile_name):
-    if not profile_name:
-        profile_name = "Default"
-        # return False, "Profile Name Required."
-    if not OUT_MAP.exists():
-        return False, "No Calibration Found."
-   
-    try:
-        with open(OUT_MAP, "r") as f:
-            profile = json.load(f)
-
-        # Validate calibration data
-        if (
-            "wx" not in profile or
-            "wy" not in profile
-        ):
-            return False, "No Valid Calibration Found."
-
-        profile["profile_name"] = profile_name
-        profile["timestamp"] = time.strftime("%Y-%m-%d %H:%M:%S")
-        safe_filename = (
-            profile_name.lower()
-            .replace(" ", "_")
-        )
-
-        profile_path = PROFILES_DIR / f"{safe_filename}.json"
-
-        with open(profile_path, "w") as f:
-            json.dump(profile, f, indent=4)
-
-        # Update active runtime calibration & Keep runtime profile in sync
-        with open(OUT_MAP, "w") as f:
-            json.dump(profile, f, indent=4)
-
-        return True, "Profile: " + profile_name + " Saved Successfully."
-
-    except Exception as e:
-        return False, str(e)
-
-
-# Delete Profile
-# ----------------------------------------------------------------------------------------
-
-def delete_profile(filename):
-
-    profile_path = PROFILES_DIR / f"{filename}.json"
-
-    if not profile_path.exists():
-        return False, "Profile Not Found."
-
-    try:
-        # Read profile before deleting
-        with open(profile_path, "r") as f:
-            profile_data = json.load(f)
-
-        active_name = ""
-
-        if OUT_MAP.exists():
-            with open(OUT_MAP, "r") as f:
-                active = json.load(f)
-                active_name = active.get("profile_name", "")
-
-        # Delete file
-        profile_path.unlink()
-
-        # If deleted profile was active, keep runtime calibration but mark it as Unsaved
-        if active_name.lower() == profile_data.get("profile_name", "").lower():
-            active["profile_name"] = "default"
-            with open(OUT_MAP, "w") as f:
-                json.dump(active, f, indent=4)
-
-        return True, "Profile Deleted."
-
-    except Exception as e:
-        return False, str(e)
-
 
 # ----------------------
 # Heatmap helpers
@@ -684,14 +443,6 @@ def draw_target_with_plus(canvas, x, y, radius, show_plus=False):
 # Alignment mode
 # ----------------------
 def mode_alignment():
-    clear_stop()
-    # Update state on Workflow Dashboard
-    update_progress(
-        "Alignment",
-        10,
-        "Initializing camera and alignment...",
-    )
-
     cap = cv2.VideoCapture(0)
     win = "Alignment - position your head inside the reference"
     cv2.namedWindow(win, cv2.WINDOW_NORMAL)
@@ -711,13 +462,6 @@ def mode_alignment():
     print("Alignment mode: Press 's' when aligned and face is green/ok (or 'q' to quit).")
 
     while True:
-        #trigger when clicks Stop btn
-        if should_stop():
-            cap.release()
-            cv2.destroyAllWindows()
-            reset_workflow("Alignment stopped by user.")
-            return
-
         ret, frame = cap.read()
         if not ret:
             break
@@ -748,10 +492,10 @@ def mode_alignment():
         outline_color = (0, 255, 0) if present else (0, 0, 255)
         cv2.rectangle(overlay, (5, 5), (preview.shape[1]-5, preview.shape[0]-5), outline_color, 4, cv2.LINE_AA)
         if present:
-            cv2.putText(overlay, "Face Detected. Press 's' On Window to Start Calibration.", (30, 40),
+            cv2.putText(overlay, "Face detected. Press 's' to start calibration.", (30, 40),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0,255,0), 2, cv2.LINE_AA)
         else:
-            cv2.putText(overlay, "Face Not Found or Too Dark. Adjust Camera/Lighting.", (30, 40),
+            cv2.putText(overlay, "Face not found or too dark. Adjust camera/lighting.", (30, 40),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0,0,255), 2, cv2.LINE_AA)
             if bbox is not None:
                 minx, miny, maxx, maxy = bbox
@@ -767,20 +511,7 @@ def mode_alignment():
         if key in (ord('s'), ord('S')) and present:
             break
         if key == ord('q'):
-            cap.release()
-            cv2.destroyWindow(win)
-            # Reset state on Workflow Dashboard
-            reset_workflow("Alignment cancelled.")
-            return
-
-    # Update state on Workflow Dashboard
-    update_progress(
-        "Alignment",
-        33,
-        "Alignment completed. Ready for Calibration.",
-        running=False,
-        completed=False
-    )
+            break
 
     cap.release()
     cv2.destroyWindow(win)
@@ -789,21 +520,9 @@ def mode_alignment():
 # Calibration flow
 # ----------------------
 def mode_calibration(num_points=16):
-    clear_stop()
-    # Update state on Workflow Dashboard
-    update_progress(
-        "Calibration",
-        40,
-        "Calibration started. New window will open then Please follow the targets..."
-    )
+    print("Starting calibration. Make sure you're aligned and press Enter to begin.")
+    input("Press Enter to start (or Ctrl+C to cancel)...")
 
-    print("Starting calibration...")
-
-    # Only wait for Enter in standalone mode
-    if not WEB_MODE:
-        print("Make sure you're aligned.")
-        input("Press Enter to start (or Ctrl+C to cancel)...")
-    
     if num_points == 9:
         n = 3
     else:
@@ -875,8 +594,6 @@ def mode_calibration(num_points=16):
                 cv2.putText(canvas, ln, (x, y), font, 2.0*scale, (0,0,255), thickness, cv2.LINE_AA)
             cv2.imshow(win, canvas)
             if cv2.waitKey(1) & 0xFF == ord('q'):
-                # Reset state on Workflow Dashboard
-                reset_workflow("Calibration cancelled.")
                 return True
         return False
 
@@ -896,11 +613,6 @@ def mode_calibration(num_points=16):
         peak_rr = 0.0
         
         while True:
-
-            #Triggers if Stop btn clicks
-            if should_stop():
-                return rec, True, float(TARGET_RADIUS), float(peak_rr)
-            
             elapsed = time.time() - t_start
             raw_alpha = min(1.0, elapsed / duration)
             
@@ -946,21 +658,10 @@ def mode_calibration(num_points=16):
                 time.sleep(0.12)
                 return rec, False, float(rr_final), float(peak_rr)
             if cv2.waitKey(1) & 0xFF == ord('q'):
-                # Reset state on Workflow Dashboard
-                reset_workflow("Calibration cancelled.")
                 return rec, True, float(TARGET_RADIUS * 0.6), float(peak_rr)
 
     # Phase 1: grid sampling
     for i, (tx, ty) in enumerate(grid_targets):
-
-        #Triggers if Stop btn clicks
-        if should_stop():
-            cap.release()
-            show_system_cursor()
-            cv2.destroyAllWindows()
-            reset_workflow("Calibration stopped by User.")
-            return
-
         if i == 0:
             cur_x, cur_y = center
         else:
@@ -968,10 +669,7 @@ def mode_calibration(num_points=16):
 
         rec, early_quit, end_radius, peak_radius = animate_transition_and_maybe_sample(cur_x, cur_y, tx, ty, record_while=False)
         if early_quit:
-            cap.release(); show_system_cursor(); cv2.destroyAllWindows(); 
-            # Reset state on Workflow Dashboard
-            reset_workflow("Calibration cancelled by User.")      
-            return
+            cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
 
         while True:
             ret, frame = cap.read()
@@ -995,14 +693,11 @@ def mode_calibration(num_points=16):
                 cv2.rectangle(canvas, (PREVIEW_MARGIN-4, PREVIEW_MARGIN-4),
                               (PREVIEW_MARGIN+CAM_PREVIEW_SIZE[0]+4, PREVIEW_MARGIN+CAM_PREVIEW_SIZE[1]+4),
                               (0,0,255), 4, cv2.LINE_AA)
-                cv2.putText(canvas, "Face Not Detected or Too Dark. Adjust Camera/Lighting.", (30, SCREEN_H - 60),
+                cv2.putText(canvas, "Face not detected or too dark. Adjust camera/lighting.", (30, SCREEN_H - 60),
                             cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,0,255), 2, cv2.LINE_AA)
                 cv2.imshow(win, canvas)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
-                    cap.release(); show_system_cursor(); cv2.destroyAllWindows(); 
-                    # Reset state on Workflow Dashboard
-                    reset_workflow("Calibration cancelled by User.") 
-                    return
+                    cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
                 time.sleep(0.05)
 
         samples = 0
@@ -1028,15 +723,12 @@ def mode_calibration(num_points=16):
                     cv2.rectangle(canvas, (PREVIEW_MARGIN-4, PREVIEW_MARGIN-4),
                                   (PREVIEW_MARGIN+CAM_PREVIEW_SIZE[0]+4, PREVIEW_MARGIN+CAM_PREVIEW_SIZE[1]+4),
                                   (0,0,255), 4, cv2.LINE_AA)
-                    cv2.putText(canvas, "Paused: Face Lost or Too Dark. Fix and Wait...", (30, SCREEN_H - 60),
+                    cv2.putText(canvas, "Paused: face lost or too dark. Fix and wait...", (30, SCREEN_H - 60),
                                 cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,0,255), 2, cv2.LINE_AA)
                     cv2.imshow(win, canvas)
                     key = cv2.waitKey(1) & 0xFF
                     if key == ord('q'):
-                        cap.release(); show_system_cursor(); cv2.destroyAllWindows(); 
-                        # Reset state on Workflow Dashboard
-                        reset_workflow("Calibration cancelled by User.") 
-                        return
+                        cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
                     rgb2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2RGB)
                     res2 = face_mesh.process(rgb2)
                     present2, brightness2, bbox2 = face_present_and_bright(res2, frame2)
@@ -1069,13 +761,10 @@ def mode_calibration(num_points=16):
                         cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,0,255), 2, cv2.LINE_AA)
             cv2.imshow(win, canvas)
             if cv2.waitKey(1) & 0xFF == ord('q'):
-                cap.release(); show_system_cursor(); cv2.destroyAllWindows(); 
-                # Reset state on Workflow Dashboard
-                reset_workflow("Calibration cancelled by User.") 
-                return
+                cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
 
     # Phase 2: drags + edge sampling
-    phase2_instruction = "Drag Head with the Pointer."
+    phase2_instruction = "Drag Head with the pointer."
     if show_center_message(phase2_instruction, secs=3):
         cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
 
@@ -1083,15 +772,6 @@ def mode_calibration(num_points=16):
         rec, early, end_radius, peak_radius = animate_transition_and_maybe_sample(center[0], center[1], etx, ety,
                                                                                    record_while=True, max_samples=SAMPLES_PER_DRAG,
                                                                                    instruction=None, drag_mode=True, edge_name=edge_name)
-        
-        #Triggers if Stop btn clicks
-        if should_stop():
-            cap.release()
-            show_system_cursor()
-            cv2.destroyAllWindows()
-            reset_workflow("Calibration stopped by User.")
-            return
-        
         if early:
             cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
 
@@ -1119,15 +799,12 @@ def mode_calibration(num_points=16):
                     cv2.rectangle(canvas, (PREVIEW_MARGIN-4, PREVIEW_MARGIN-4),
                                   (PREVIEW_MARGIN+CAM_PREVIEW_SIZE[0]+4, PREVIEW_MARGIN+CAM_PREVIEW_SIZE[1]+4),
                                   (0,0,255), 4, cv2.LINE_AA)
-                    cv2.putText(canvas, "Paused: Face Lost or Too Dark. Fix and Wait...", (30, SCREEN_H - 60),
+                    cv2.putText(canvas, "Paused: face lost or too dark. Fix and wait...", (30, SCREEN_H - 60),
                                 cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,0,255), 2, cv2.LINE_AA)
                     cv2.imshow(win, canvas)
                     key = cv2.waitKey(1) & 0xFF
                     if key == ord('q'):
-                        cap.release(); show_system_cursor(); cv2.destroyAllWindows(); 
-                        # Reset state on Workflow Dashboard
-                        reset_workflow("Calibration cancelled by User.") 
-                        return
+                        cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
                     rgb2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2RGB)
                     res2 = face_mesh.process(rgb2)
                     present2, brightness2, bbox2 = face_present_and_bright(res2, frame2)
@@ -1156,14 +833,11 @@ def mode_calibration(num_points=16):
 
             canvas = make_fullscreen_canvas(255)
             draw_target_with_plus(canvas, etx, ety, displayed_radius, show_plus=True)
-            cv2.putText(canvas, f"Edge-Sampling {samples}/{SAMPLES_PER_POINT}", (30, SCREEN_H - 60),
+            cv2.putText(canvas, f"Edge-sampling {samples}/{SAMPLES_PER_POINT}", (30, SCREEN_H - 60),
                         cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,0,255), 2, cv2.LINE_AA)
             cv2.imshow(win, canvas)
             if cv2.waitKey(1) & 0xFF == ord('q'):
-                cap.release(); show_system_cursor(); cv2.destroyAllWindows(); 
-                # Reset state on Workflow Dashboard
-                reset_workflow("Calibration cancelled by User.")
-                return
+                cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
 
         return_duration = 0.6
         t_start = time.time()
@@ -1187,10 +861,7 @@ def mode_calibration(num_points=16):
             if raw_alpha >= 1.0:
                 break
             if cv2.waitKey(1) & 0xFF == ord('q'):
-                cap.release(); show_system_cursor(); cv2.destroyAllWindows(); 
-                # Reset state on Workflow Dashboard
-                reset_workflow("Calibration cancelled by User.") 
-                return
+                cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
             time.sleep(0.01)
 
     try:
@@ -1203,29 +874,17 @@ def mode_calibration(num_points=16):
         with open(OUT_DRAG_JSON, "w") as f:
             json.dump(existing, f, indent=2)
     except Exception as e:
-        print("Warning: Failed to Save drag JSON:", e)
+        print("Warning: failed to save drag JSON:", e)
 
-    # Phase 3: Corners sampling
+    # Phase 3: corners sampling
     for i, (tx, ty) in enumerate(corners):
-
-        #Triggers if Stop btn clicks
-        if should_stop():
-            cap.release()
-            show_system_cursor()
-            cv2.destroyAllWindows()
-            reset_workflow("Calibration stopped by User.")
-            return
-
         if i == 0:
             start_x, start_y = center
         else:
             start_x, start_y = corners[i-1]
         rec, early_quit, end_radius, peak_radius = animate_transition_and_maybe_sample(start_x, start_y, tx, ty, record_while=False)
         if early_quit:
-            cap.release(); show_system_cursor(); cv2.destroyAllWindows(); 
-            # Reset state on Workflow Dashboard
-            reset_workflow("Calibration cancelled by User.")  
-            return
+            cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
 
         while True:
             ret, frame = cap.read()
@@ -1249,14 +908,11 @@ def mode_calibration(num_points=16):
                 cv2.rectangle(canvas, (PREVIEW_MARGIN-4, PREVIEW_MARGIN-4),
                               (PREVIEW_MARGIN+CAM_PREVIEW_SIZE[0]+4, PREVIEW_MARGIN+CAM_PREVIEW_SIZE[1]+4),
                               (0,0,255), 4, cv2.LINE_AA)
-                cv2.putText(canvas, "Face not detected or too Dark. Adjust camera/lighting.", (30, SCREEN_H - 60),
+                cv2.putText(canvas, "Face not detected or too dark. Adjust camera/lighting.", (30, SCREEN_H - 60),
                             cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,0,255), 2, cv2.LINE_AA)
                 cv2.imshow(win, canvas)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
-                    cap.release(); show_system_cursor(); cv2.destroyAllWindows(); 
-                    # Reset state on Workflow Dashboard
-                    reset_workflow("Calibration cancelled by User.")  
-                    return
+                    cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
                 time.sleep(0.05)
 
         samples = 0
@@ -1282,15 +938,12 @@ def mode_calibration(num_points=16):
                     cv2.rectangle(canvas, (PREVIEW_MARGIN-4, PREVIEW_MARGIN-4),
                                   (PREVIEW_MARGIN+CAM_PREVIEW_SIZE[0]+4, PREVIEW_MARGIN+CAM_PREVIEW_SIZE[1]+4),
                                   (0,0,255), 4, cv2.LINE_AA)
-                    cv2.putText(canvas, "Paused: Face Lost or Too Dark. Fix and Wait...", (30, SCREEN_H - 60),
+                    cv2.putText(canvas, "Paused: face lost or too dark. Fix and wait...", (30, SCREEN_H - 60),
                                 cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,0,255), 2, cv2.LINE_AA)
                     cv2.imshow(win, canvas)
                     key = cv2.waitKey(1) & 0xFF
                     if key == ord('q'):
-                        cap.release(); show_system_cursor(); cv2.destroyAllWindows(); 
-                        # Reset state on Workflow Dashboard
-                        reset_workflow("Calibration cancelled by User.")  
-                        return
+                        cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
                     rgb2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2RGB)
                     res2 = face_mesh.process(rgb2)
                     present2, brightness2, bbox2 = face_present_and_bright(res2, frame2)
@@ -1323,40 +976,16 @@ def mode_calibration(num_points=16):
                         cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,0,255), 2, cv2.LINE_AA)
             cv2.imshow(win, canvas)
             if cv2.waitKey(1) & 0xFF == ord('q'):
-                cap.release(); show_system_cursor(); cv2.destroyAllWindows(); 
-                # Reset state on Workflow Dashboard
-                reset_workflow("Calibration cancelled by User.")  
-                return
-
-    # Update state on Workflow Dashboard
-    update_progress(
-        "Calibration",
-        66,
-        "Calibration completed. Ready for Cursor Control.",
-        running=False,
-        completed=False
-    )
+                cap.release(); show_system_cursor(); cv2.destroyAllWindows(); return
 
     cap.release()
     show_system_cursor()
     cv2.destroyAllWindows()
 
     if len(collected) < 6:
-        print("Not Enough Samples Collected.")
+        print("Not enough samples collected.")
         return
     wx, wy = fit_poly_mapping(collected)
-
-    print(
-        f"lx_n={lx_n:.4f} "
-        f"rx_n={rx_n:.4f} "
-        f"ly_n={ly_n:.4f} "
-        f"ry_n={ry_n:.4f}"
-    )
-
-    print(
-        f"avgX={(lx_n+rx_n)/2:.4f} "
-        f"avgY={(ly_n+ry_n)/2:.4f}"
-    )
 
     pred_x = np.array([predict_poly(wx, wy, ex, ey)[0] for ex, ey, _, _ in collected])
     pred_y = np.array([predict_poly(wx, wy, ex, ey)[1] for ex, ey, _, _ in collected])
@@ -1367,37 +996,19 @@ def mode_calibration(num_points=16):
     try:
         cx, _ = pearsonr(pred_x, true_x)
         cy, _ = pearsonr(pred_y, true_y)
-
-        print(f"Correlation X: {cx:.4f}")
-        print(f"Correlation Y: {cy:.4f}")
-        
         if cx < 0: invert_x = True
         if cy < 0: invert_y = True
-    
     except Exception:
         pass
-    print(f"Invert X: {invert_x}")
-    print(f"Invert Y: {invert_y}")
 
-    # INTERACTIVE PROFILE NAME SAVE PROMPT
     print("\n" + "="*40)
-    if WEB_MODE:
-        # Website uses Default profile automatically
-        DEFAULT_WEB_PROFILE = "Default"
-        user_node_name = DEFAULT_WEB_PROFILE
-    else:
-        user_node_name = input("Enter a name for this calibration profile (e.g. user_daylight) [Or press Enter for 'Default']: ").strip()
-        if not user_node_name:
-            user_node_name = "Default"
+    user_node_name = input("Enter a name for this calibration profile (e.g. user_daylight) [Or press Enter for 'default']: ").strip()
+    if not user_node_name:
+        user_node_name = "default"
         
     save_mapping(wx, wy, invert_x=invert_x, invert_y=invert_y, profile_name=user_node_name)
     
     errors = np.sqrt((pred_x - true_x) ** 2 + (pred_y - true_y) ** 2)
-    print("--------------------------------")
-    print("Mean Error :", errors.mean())
-    print("Median Error :", np.median(errors))
-    print("Max Error :", errors.max())
-    print("--------------------------------")
     print("Calibration finished. Mean error: {:.1f}px, Median: {:.1f}px".format(errors.mean(), np.median(errors)))
 
 # ----------------------
@@ -1437,35 +1048,16 @@ class PreviewWindow:
 
 
 def mode_cursor_control():
-    stopped_by_user = False
-    failsafe_active = False
-    clear_stop()
-    # Update state on Workflow Dashboard
-    update_progress(
-        "Cursor Control",
-        100,
-        "Cursor Control Activated, Giving Cursor Control.",
-        True,
-        False
-    )
-
     PHYSICAL_LEFT_EYE = [33, 159, 145, 133]  
     PHYSICAL_RIGHT_EYE = [362, 386, 374, 263]
     
     mapping = load_mapping()
     if mapping is None: 
-        print("\n[ERROR] No Active tracking Profile found! Please run Calibration (2) or Load a Profile node first.")
+        print("\n[ERROR] No active tracking profile found! Please run Calibration (2) or Load a profile node first.")
         return
     
-    wx = np.array(mapping["wx"]); 
-    wy = np.array(mapping["wy"]); 
+    wx = np.array(mapping["wx"]); wy = np.array(mapping["wy"])
     invert_x = True 
-    # Read calibration settings
-    # invert_x = mapping.get("invert_x", False)
-    invert_y = mapping.get("invert_y", True)
-
-    print(f"Invert X: {invert_x}")
-    print(f"Invert Y: {invert_y}")
     
     cap = cv2.VideoCapture(0)
     ema_x, ema_y = None, None
@@ -1486,7 +1078,7 @@ def mode_cursor_control():
     norm_dist_smooth = None
     pinch_release_count = 0
 
-    profile_label = mapping.get("profile_name", "Default")
+    profile_label = mapping.get("profile_name", "default")
     print(f"Cursor Control Active using Node Profile: '{profile_label}'. Press 'CTRL+Q' anywhere to exit.")
 
     preview = PreviewWindow("Wink Debugging (Press CTRL+Q to stop)")
@@ -1494,21 +1086,12 @@ def mode_cursor_control():
 
     try:
         while True:
-            #Trggers if Stop btn clicks
-            if should_stop():
-                stopped_by_user = True
-                cursor_stopped()
-                return
             if keyboard.is_pressed('ctrl+q'):
-                stopped_by_user = True
-                print("\nUniversal Exit Triggered. Closing...")
-                # reset_workflow("Cursor Control stopped.")
-                cursor_stopped()
+                print("\nUniversal exit triggered. Closing...")
                 break
 
             ret, frame = cap.read()
-            if not ret: 
-                break
+            if not ret: break
             
             frame = cv2.flip(frame, 1)
             h, w, _ = frame.shape
@@ -1579,17 +1162,9 @@ def mode_cursor_control():
                 if centers:
                     lx_n, ly_n, rx_n, ry_n = centers
                     px, py = predict_poly(wx, wy, (lx_n + rx_n) / 2.0, (ly_n + ry_n) / 2.0)
-
-                    if invert_x:
-                        px = SCREEN_W - px
-                    if invert_y:
-                        py = SCREEN_H - py
-
-                    # px = float(np.clip(px, 0, SCREEN_W-1))
-                    # py = float(np.clip(py, 0, SCREEN_H-1))
-                    SAFE_MARGIN = 10
-                    px = float(np.clip(px, SAFE_MARGIN, SCREEN_W - SAFE_MARGIN))
-                    py = float(np.clip(py, SAFE_MARGIN, SCREEN_H - SAFE_MARGIN))
+                    if invert_x: px = SCREEN_W - px
+                    px = float(np.clip(px, 0, SCREEN_W-1))
+                    py = float(np.clip(py, 0, SCREEN_H-1))
 
                     if ema_x is None: ema_x, ema_y = px, py
                     else:
@@ -1597,18 +1172,7 @@ def mode_cursor_control():
                         alpha = EMA_ALPHA + min(0.8, (dist / max(SCREEN_W, SCREEN_H)) * 3.0)
                         ema_x = alpha * px + (1 - alpha) * ema_x
                         ema_y = alpha * py + (1 - alpha) * ema_y
-
-                    try:
-                        pyautogui.moveTo(
-                            int(ema_x),
-                            int(ema_y),
-                            _pause=False
-                        )
-                    except pyautogui.FailSafeException:
-                        failsafe_active = True
-                        print("PyAutoGUI FailSafe Triggered.")
-                        failsafe_triggered()
-                        break
+                    pyautogui.moveTo(int(ema_x), int(ema_y), _pause=False)
 
                 l_ear_raw = calculate_ear(landmarks, PHYSICAL_LEFT_EYE)
                 r_ear_raw = calculate_ear(landmarks, PHYSICAL_RIGHT_EYE)
@@ -1684,68 +1248,33 @@ def mode_cursor_control():
     finally:
         if is_dragging:
             pyautogui.mouseUp(button='left')
-
         preview.stop()
         cap.release()
-
-        # Update state on Workflow Dashboard
-        if not stopped_by_user and not failsafe_active:
-            update_progress(
-                "Completed",
-                100,
-                "Workflow Completed Successfully.",
-                running=False,
-                completed=True
-            )
-        # reset_workflow("Workflow finished.")
 
 # ----------------------
 # Main
 # ----------------------
 
 if __name__ == "__main__":
-
-    print(get_profiles())
-    # # For Web-site Input (Flask mode)
-    # # ----------------------------------------------------------------------------------------
-    #       GAZE PROTOTYPE MENU
-    #       1 -> Alignment (Camera + Alignment Reference)
-    #       2 -> Calibration (Smooth 4x4 + Slow drags + Edge sampling + Corners)
-    #       3 -> Cursor control (Overlay + OS Cursor Control)
-    #       4 -> Profile Management (Load Saved Calibration Profiles)
-    #       q -> Quit
-
-    if WEB_MODE:
-        mode = sys.argv[1]
-
-        if mode == "1": mode_alignment()
-        elif mode == "2":   mode_calibration(num_points=16)
-        elif mode == "3":   mode_cursor_control()
-        elif mode == "4":   interactive_profile_menu()
-        else:   print("Invalid mode.")
-
-    # # For Keyboard Input using Terminal (Standalone Testing)
-    # # ----------------------------------------------------------------------------------------
-    else:
-        while True:
-            print("""
-                GAZE PROTOTYPE MENU
-                1 -> Alignment (Camera + Alignment Reference)
-                2 -> Calibration (Smooth 4x4 + Slow drags + Edge sampling + Corners)
-                3 -> Cursor control (Overlay + OS Cursor Control)
-                4 -> Profile Management (Load Saved Calibration Profiles)
-                q -> Quit
-            """)
-            cmd = input("Enter mode: ").strip().lower()
-            if cmd == "1":
-                mode_alignment()
-            elif cmd == "2":
-                mode_calibration(num_points=16)
-            elif cmd == "3":
-                mode_cursor_control()
-            elif cmd == "4":
-                interactive_profile_menu()
-            elif cmd == "q":
-                break
-            else:
-                print("Invalid. Choose 1, 2, 3, 4 or q.")
+    while True:
+        print("""
+    GAZE PROTOTYPE MENU
+    1 -> Alignment (camera + alignment reference)
+    2 -> Calibration (smooth 4x4 + slow drags + edge sampling + corners)
+    3 -> Cursor control (overlay + OS cursor moves)
+    4 -> Profile Management (Load saved calibration profiles)
+    q -> Quit
+        """)
+        cmd = input("Enter mode: ").strip().lower()
+        if cmd == "1":
+            mode_alignment()
+        elif cmd == "2":
+            mode_calibration(num_points=16)
+        elif cmd == "3":
+            mode_cursor_control()
+        elif cmd == "4":
+            interactive_profile_menu()
+        elif cmd == "q":
+            break
+        else:
+            print("Invalid. Choose 1, 2, 3, 4 or q.")

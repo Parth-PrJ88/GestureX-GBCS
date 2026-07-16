@@ -75,15 +75,6 @@ def cursor_stopped():
         running=False,
     )
 
-def failsafe_triggered():
-    update_progress(
-        "Calibration",
-        66,
-        "Failsafe Triggered. Please Recalibrate Before Starting Cursor Control again to Avoid this, because the Current Calibration may Not Accurate.",
-        running=False,
-        completed=False
-    )
-
 # Workflow Stop Control
 # --------------------------------------------
 STOP_FILE = Path("data/stop.json")
@@ -335,9 +326,20 @@ def save_mapping(wx, wy, invert_x=False, invert_y=False, profile_name="default")
         "invert_y": bool(invert_y)
     }
     
-    # Save to master profile cache for backwards compatibility
+    # 1. Save to master profile cache for backwards compatibility
     with open(OUT_MAP, "w") as f:
         json.dump(mapping, f, indent=4)
+
+    # # 2. Save inside multi-node directory profiles folder 
+    # safe_filename = "".join([c for c in profile_name if c.isalpha() or c.isdigit() or c in (' ', '_', '-')]).rstrip()
+    # safe_filename = safe_filename.replace(" ", "_").lower()
+    # if not safe_filename:
+    #     safe_filename = "unnamed_profile"
+        
+    # profile_path = PROFILES_DIR / f"{safe_filename}.json"
+    # with open(profile_path, "w") as f:
+    #     json.dump(mapping, f, indent=4)
+    # print(f"\n[SUCCESS] Calibration saved successfully under node: '{profile_name}'")
 
     print("\n[SUCCESS] Calibration saved to active runtime.")
 
@@ -1346,18 +1348,6 @@ def mode_calibration(num_points=16):
         return
     wx, wy = fit_poly_mapping(collected)
 
-    print(
-        f"lx_n={lx_n:.4f} "
-        f"rx_n={rx_n:.4f} "
-        f"ly_n={ly_n:.4f} "
-        f"ry_n={ry_n:.4f}"
-    )
-
-    print(
-        f"avgX={(lx_n+rx_n)/2:.4f} "
-        f"avgY={(ly_n+ry_n)/2:.4f}"
-    )
-
     pred_x = np.array([predict_poly(wx, wy, ex, ey)[0] for ex, ey, _, _ in collected])
     pred_y = np.array([predict_poly(wx, wy, ex, ey)[1] for ex, ey, _, _ in collected])
     true_x = np.array([r[2] for r in collected])
@@ -1367,17 +1357,10 @@ def mode_calibration(num_points=16):
     try:
         cx, _ = pearsonr(pred_x, true_x)
         cy, _ = pearsonr(pred_y, true_y)
-
-        print(f"Correlation X: {cx:.4f}")
-        print(f"Correlation Y: {cy:.4f}")
-        
         if cx < 0: invert_x = True
         if cy < 0: invert_y = True
-    
     except Exception:
         pass
-    print(f"Invert X: {invert_x}")
-    print(f"Invert Y: {invert_y}")
 
     # INTERACTIVE PROFILE NAME SAVE PROMPT
     print("\n" + "="*40)
@@ -1393,11 +1376,6 @@ def mode_calibration(num_points=16):
     save_mapping(wx, wy, invert_x=invert_x, invert_y=invert_y, profile_name=user_node_name)
     
     errors = np.sqrt((pred_x - true_x) ** 2 + (pred_y - true_y) ** 2)
-    print("--------------------------------")
-    print("Mean Error :", errors.mean())
-    print("Median Error :", np.median(errors))
-    print("Max Error :", errors.max())
-    print("--------------------------------")
     print("Calibration finished. Mean error: {:.1f}px, Median: {:.1f}px".format(errors.mean(), np.median(errors)))
 
 # ----------------------
@@ -1438,13 +1416,12 @@ class PreviewWindow:
 
 def mode_cursor_control():
     stopped_by_user = False
-    failsafe_active = False
     clear_stop()
     # Update state on Workflow Dashboard
     update_progress(
         "Cursor Control",
         100,
-        "Cursor Control Activated, Giving Cursor Control.",
+        "Cursor Control Active.",
         True,
         False
     )
@@ -1457,15 +1434,8 @@ def mode_cursor_control():
         print("\n[ERROR] No Active tracking Profile found! Please run Calibration (2) or Load a Profile node first.")
         return
     
-    wx = np.array(mapping["wx"]); 
-    wy = np.array(mapping["wy"]); 
+    wx = np.array(mapping["wx"]); wy = np.array(mapping["wy"])
     invert_x = True 
-    # Read calibration settings
-    # invert_x = mapping.get("invert_x", False)
-    invert_y = mapping.get("invert_y", True)
-
-    print(f"Invert X: {invert_x}")
-    print(f"Invert Y: {invert_y}")
     
     cap = cv2.VideoCapture(0)
     ema_x, ema_y = None, None
@@ -1497,6 +1467,9 @@ def mode_cursor_control():
             #Trggers if Stop btn clicks
             if should_stop():
                 stopped_by_user = True
+                cap.release()
+                cv2.destroyAllWindows()
+                # reset_workflow("Cursor Control stopped.")
                 cursor_stopped()
                 return
             if keyboard.is_pressed('ctrl+q'):
@@ -1507,8 +1480,7 @@ def mode_cursor_control():
                 break
 
             ret, frame = cap.read()
-            if not ret: 
-                break
+            if not ret: break
             
             frame = cv2.flip(frame, 1)
             h, w, _ = frame.shape
@@ -1579,17 +1551,9 @@ def mode_cursor_control():
                 if centers:
                     lx_n, ly_n, rx_n, ry_n = centers
                     px, py = predict_poly(wx, wy, (lx_n + rx_n) / 2.0, (ly_n + ry_n) / 2.0)
-
-                    if invert_x:
-                        px = SCREEN_W - px
-                    if invert_y:
-                        py = SCREEN_H - py
-
-                    # px = float(np.clip(px, 0, SCREEN_W-1))
-                    # py = float(np.clip(py, 0, SCREEN_H-1))
-                    SAFE_MARGIN = 10
-                    px = float(np.clip(px, SAFE_MARGIN, SCREEN_W - SAFE_MARGIN))
-                    py = float(np.clip(py, SAFE_MARGIN, SCREEN_H - SAFE_MARGIN))
+                    if invert_x: px = SCREEN_W - px
+                    px = float(np.clip(px, 0, SCREEN_W-1))
+                    py = float(np.clip(py, 0, SCREEN_H-1))
 
                     if ema_x is None: ema_x, ema_y = px, py
                     else:
@@ -1597,18 +1561,7 @@ def mode_cursor_control():
                         alpha = EMA_ALPHA + min(0.8, (dist / max(SCREEN_W, SCREEN_H)) * 3.0)
                         ema_x = alpha * px + (1 - alpha) * ema_x
                         ema_y = alpha * py + (1 - alpha) * ema_y
-
-                    try:
-                        pyautogui.moveTo(
-                            int(ema_x),
-                            int(ema_y),
-                            _pause=False
-                        )
-                    except pyautogui.FailSafeException:
-                        failsafe_active = True
-                        print("PyAutoGUI FailSafe Triggered.")
-                        failsafe_triggered()
-                        break
+                    pyautogui.moveTo(int(ema_x), int(ema_y), _pause=False)
 
                 l_ear_raw = calculate_ear(landmarks, PHYSICAL_LEFT_EYE)
                 r_ear_raw = calculate_ear(landmarks, PHYSICAL_RIGHT_EYE)
@@ -1684,20 +1637,18 @@ def mode_cursor_control():
     finally:
         if is_dragging:
             pyautogui.mouseUp(button='left')
-
         preview.stop()
-        cap.release()
-
         # Update state on Workflow Dashboard
-        if not stopped_by_user and not failsafe_active:
+        if not stopped_by_user:
             update_progress(
                 "Completed",
                 100,
-                "Workflow Completed Successfully.",
+                "Workflow completed successfully.",
                 running=False,
                 completed=True
             )
         # reset_workflow("Workflow finished.")
+        cap.release()
 
 # ----------------------
 # Main
@@ -1749,3 +1700,4 @@ if __name__ == "__main__":
                 break
             else:
                 print("Invalid. Choose 1, 2, 3, 4 or q.")
+

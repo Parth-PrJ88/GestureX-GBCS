@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>GBCS - Gesture Based Control System</title>
+    <!--Slider CSS-->
+    <link rel="stylesheet" href="https://unpkg.com/swiper@8/swiper-bundle.min.css" />
+    <!-- Boxicons CSS -->
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <!-- Font Awesome CSS - for app icons -->
+    <script src="https://kit.fontawesome.com/fe186eb2b8.js" crossorigin="anonymous"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+    <!-- Floating Background Icons -->
+    
+    <div class="floating-bg" id="floating-bg"></div>
+    
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-pill">
+            <div class="logo">
+                Gesture<span>X</span>
+            </div>
+
+            <button class="nav-toggle">
+                <!-- Toggle(Menu) Icon using Bars -->
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </button>
+
+            <div class="nav-links" id="navOpt">
+                <a href="#home" class="active">Home</a>
+                <a href="#project" class="">Projects</a>
+                <a href="#projectmembers" class="">About</a>
+            </div>
+
+            <div class="nav-btns">
+                <button class="nav-cta-btn" onclick="window.location.href='/try'">Try Now</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main -->
+    <main>
+
+        <!-- Home Section -->
+        <section class="Home" id="home">
+            <div class="title">
+                <h1>Gesture<span id="char-X">X</span></h1>
+            </div>
+
+            <div class="hero">
+                <h1><span id="char-X">G</span>esture <span id="char-X">B</span>ased <span id="char-X">C</span>ontrol <span id="char-X">S</span>ystem</h1>
+            </div>
+
+            <div class="line-btn-wrap">
+                <span class="line left"></span>
+                <button class="try-btn" onclick="window.location.href='/try'">
+                    <h3>Try it Now</h3>
+                </button>
+                <span class="line right"></span>
+            </div>
+
+
+            <p id="status" style="text-align:center;font-size:20px;margin-top:20px;"></p>
+        
+            <div class="scroll-bar"></div>           
+        </section>
+
+        <!-- Project Overview -->  
+        <section class="Project" id="project">
+            <div class="project-title">
+                <h2 class="center" id="pro-title">Project</h2>
+            </div>
+
+            <div class="text-container">
+                <h3>Project Goal</h3>
+                <p>
+                    The aim of GBCS is to allow hands-free interaction with a computer
+                    using eye gaze tracking and hand gestures. It is designed for
+                    paralysed and physically challenged individuals.
+                </p>
+            </div>
+
+            <!-- Slider -->
+            <section id="box">
+                <div class="box-container">
+                    <div class="swiper slider">
+                        <div class="swiper-wrapper">
+                            <!-- Slide-start -->
+                            <div class="swiper-slide slide">
+                                <div class="slide-content">
+                                    <h3>Technologies</h3>
+                                    <h2 class="slide-text">
+                                        <ul>
+                                            <li>OpenCV</li>
+                                            <li>Mediapipe FaceMesh</li>
+                                            <li>PyAutoGUI</li>
+                                            <li>Mathematical Regression Mapping</li>
+                                        </ul>
+                                    </h2>
+                                </div>
+                            </div>
+                            <!-- Slide-end -->
+                            <!-- Slide-start -->
+                            <div class="swiper-slide slide">
+                                <div class="slide-content">
+                                    <h3>Features</h3>
+                                    <h2 class="slide-text">
+                                        <ul>
+                                            <li>OpenCVCursor Control</li>
+                                            <li>Calibration System</li>
+                                            <li>Heatmap Tracking</li>
+                                            <li>Gesture Recognition</li>
+                                            <li>Clicking Mechanism (Coming Soon)</li>
+                                        </ul>
+                                    </h2>
+                                </div>
+                            </div>
+                            <!-- Slide-end -->
+                            <!-- Slide-start -->
+                            <div class="swiper-slide slide">
+                                <div class="slide-content">
+                                    <h3>Benefits</h3>
+                                    <h2 class="slide-text">
+                                        <ul>
+                                            <li>Hands-free usage</li>
+                                            <li>No Need of mouse</li>
+                                            <li>Accessible for disabled users</li>
+                                            <li>Medical application</li>
+                                            <li>Heatmap based Tracking</li>
+                                        </ul>
+                                    </h2>
+                                </div>
+                            </div>
+                            <!-- Slide-end -->
+                            <!-- Slide-start -->
+                            <div class="swiper-slide slide">
+                                <div class="slide-content">
+                                    <h3>Future Updates</h3>
+                                    <h2 class="slide-text">
+                                        <ul>
+                                            <li>Improve gesture recognition accuracy</li>
+                                            <li>Add customizable gestures</li>
+                                            <li>Integrate Multiple Ways for Control System</li>
+                                        </ul>                        
+                                    </h2>
+                                </div>
+                            </div>
+                            <!-- Slide-end -->
+                        </div>
+
+                        <div class="slider-control">
+                            <div class="swiper-button-prev slider-arrow">
+                                <ion-icon name="arrow-back-outline">L</ion-icon>
+                            </div>
+                            <div class="swiper-button-next slider-arrow">
+                                <ion-icon name="arrow-forward-outline">R</ion-icon>
+                            </div>
+                            <div class="swiper-pagination"></div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+            <!-- Project Members info -->
+            <section class="About" id="projectmembers">
+                <div class="projectmembers-title">
+                    <h2 class="center" id="pro-members">Project Members</h2>
+                </div>
+                <div class="project-container">
+                    <div class="card-section">
+                        <div class="card">
+                            <div class="card-info">
+                                <h1 id="nameAnimation">MANAV PATEL</h1>
+                                <p><b><span id="char-X">Role:</span> Lead Developer</b> <br><br>I am a dedicated and talented individual who leads the development team with dedication and expertise.</p>
+                                <div class="Buttons">
+                                    <ul class="ul-icons">
+                                        <li><a href="https://github.com/ManavPatel0507" target="_blank"><i class='bx bxl-github'></i></a></li>
+                                        <li><a href="https://www.linkedin.com/in/manavpatel0507" target="_blank"><i class='bx bxl-linkedin'></i></a></li>
+                                        <li><a href="https://x.com/ManavPatel0507" id="x" target="_blank"><i class="fa-brands fa-x-twitter"></i></a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="card-img">
+                                <img src="/static/Manav.png" alt="Card-Image" id="manav-img" style="transform: scale(1.1);">
+                            </div>
+                            <div class="orbit-icon">
+                                <!-- <i class='bx bxs-network-chart'></i> -->
+                                 <i class='bx bxs'><b>&lt;/&gt;</b></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-section">
+                        <div class="card">
+                            <div class="card-info">
+                                <h1 id="nameAnimation">PARTH PRAJAPATI</h1>
+                                <p><b><span id="char-X">Role:</span> UI/UX Designer & Developer</b> <br><br>I combine creative design and technical development skills to build engaging user experiences.</p>
+                                <div class="Buttons">
+                                    <ul class="ul-icons">
+                                        <li><a href="https://github.com/Parth-PrJ88" target="_blank"><i class='bx bxl-github'></i></a></li>
+                                        <!-- <li><a href="" target="_blank"><i class='bx bxl-twitter'></i></a></li> -->
+                                        <li><a href="https://www.linkedin.com/in/parth-prajapati-154b79296/" target="_blank"><i class='bx bxl-linkedin'></i></a></li>
+                                        <li><a href="https://x.com/ParthPrj88" id="x" target="_blank"><i class="fa-brands fa-x-twitter"></i></a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="card-img">
+                                <img src="/static/Parth.png" alt="Card-Image" id="parth-img" style="transform: scale(1.02);">
+                            </div>
+                            <div class="orbit-icon">
+                                <i class='bx bxs-zap'></i> <!-- Img Surrounding icon -->
+                                <!-- <i class='bx bxs-magic-wand'></i> -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-section">
+                        <div class="card">
+                            <div class="card-info">
+                                <h1 id="nameAnimation">MANAN PATEL</h1>
+                                <p><b><span id="char-X">Role:</span> Analyst & Documenter</b> <br><br>I evaluate system requirements and develop innovative solutions with accurate documentation.</p>
+                                <div class="Buttons">
+                                    <ul class="ul-icons">
+                                        <li><a href="https://github.com/Manan-hhm" target="_blank"><i class='bx bxl-github'></i></a></li>
+                                        <li><a href="https://www.linkedin.com/in/mananp1705" target="_blank"><i class='bx bxl-linkedin'></i></a></li>
+                                        <li><a href="https://x.com/MananPatel1705" id="x" target="_blank"><i class="fa-brands fa-x-twitter"></i></a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="card-img">
+                                <img src="/static/Manan.png" alt="Card-Image" id="manan-img" style="transform: scale(1.4);">
+                            </div>
+                            <div class="orbit-icon">
+                                <i class='bx bxs-brain'></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-section">
+                        <div class="card">
+                            <div class="card-info">
+                                <h1 id="nameAnimation">MIT DALWADI</h1>
+                                <p><b><span id="char-X">Role:</span> Tester & QAE</b> <br><br>I ensure software quality & performance through testing to improve product efficiency and reliability.</p>
+                                <div class="Buttons">
+                                    <ul class="ul-icons">
+                                        <li><a href="https://github.com/MitDalwadi-rgb" target="_blank"><i class='bx bxl-github'></i></a></li>
+                                        <li><a href="https://www.linkedin.com/in/mit-dalwadi-241917401" target="_blank"><i class='bx bxl-linkedin'></i></a></li>
+                                        <li><a href="https://x.com/MitDalwadi2004" id="x" target="_blank"><i class="fa-brands fa-x-twitter"></i></a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="card-img">
+                                <img src="/static/Mit.jpg" alt="Card-Image" id="mit-img" style="transform: scale(1.24);">
+                            </div>
+                            <div class="orbit-icon">
+                                <i class='bx bxs-bug'></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Contact us -->
+            <section class="Contact">
+                <div class="contact-title">
+                    <h2 class="center" id="cont-title" style="margin-top: 13vh;">Get in Touch</h2>
+                </div>
+                <div class="row">
+                    <div class="contact-left">
+                        <h2>Contact Info.</h2>
+                        <p><b>Email: </b>GestureX@gbcs.com</p>
+                        <p><b>Contact: </b>+91 0xxxxxxxx9</p>
+                    </div>
+                    <div class="contact-right">
+                        <h2>Message form</h2>
+                        <form name="submit-to-google-sheet">
+                            <input type="text" name="Name" placeholder="Full Name" required>
+                            <input type="email" name="Email" placeholder="Email address" required>
+                            <textarea name="Message" rows="6" placeholder="Write Message" required></textarea>
+                            <button type="submit" class="s-btn">Submit</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        Gesture<span style="color: #4acfee;">X</span> Team | 2024-26
+    </footer>
+
+    <script src="https://unpkg.com/swiper@8/swiper-bundle.min.js"></script>
+    <script src="/static/script.js"></script>
+    <!-- <script src="{{ url_for('static', filename='script.js') }}"></script> -->
+
+</body>
+</html>
+
